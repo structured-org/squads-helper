@@ -19,23 +19,27 @@ import { confirmTransaction } from '@solana-developers/helpers';
 const logger = getLogger();
 
 async function main() {
-  if (process.env.TOKEN_AMOUNT == undefined) {
+  if (process.env.TOKEN_AMOUNT === undefined) {
     logger.error(
-      "It's required to declare TOKEN_AMOUNT (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+      "It's required to declare TOKEN_AMOUNT -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
     );
     process.exit(-1);
   }
-  if (process.env.SLIPPAGE_TOLERANCE == undefined) {
+  if (process.env.SLIPPAGE_TOLERANCE === undefined) {
     logger.error(
-      "It's required to declare SLIPPAGE_TOLERANCE (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+      "It's required to declare SLIPPAGE_TOLERANCE -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
     );
     process.exit(-1);
   }
+  logger.info('Reading the config');
+  const config = getConfig(process.env.CONFIG_PATH);
   const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
     /^(\d+(?:\.\d+)?)([A-Z]+)$/,
   );
-  const config = getConfig(process.env.CONFIG_PATH);
-  logger.info('Read config');
+  if (config.provide_liquidity.coins.get(denom) === undefined) {
+    logger.error(`No such a coin described in the config -- ${denom}`);
+    process.exit(-1);
+  }
   // We need to have ALT for further addLiquidity2 instruction contraction
   if (config.provide_liquidity.alt_table === undefined) {
     const createTable: UseAltRawInstruction = await useAltRawInstruction(
@@ -53,7 +57,7 @@ async function main() {
       createTable.lookupTableInstruction,
       registerAccounts,
     );
-    logger.info('Simulating table creation');
+    logger.info('Simulating the table creation');
     logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
     logger.info(
       `Table creation simulation success -- ${createTable.lookupTableAddress.toBase58()}`,
@@ -89,7 +93,7 @@ async function main() {
   const addLiquidityInstruction = await prepareRawInstruction(
     config.anchor_provider,
     amount,
-    config.provide_liquidity.coins.get(denom),
+    config.provide_liquidity.coins.get(denom)!,
     config.provide_liquidity.program_idl,
     config.multisig_ata,
     config.provide_liquidity.jlp_address,
@@ -130,9 +134,13 @@ async function main() {
     proposalActivateInstruction,
     proposalApproveInstruction,
   );
-  logger.info('Simulating providing liquidity propopsal');
+
+  logger.info(
+    `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
+  );
+  logger.info('Simulating liquidity provision propopsal');
   logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
-  logger.info('Providing liquidity propopsal simulation success');
+  logger.info('Liquidity provision propopsal simulation success');
   logger.info('Broadcasting transaction');
   const transactionHash =
     await config.anchor_provider.connection.sendTransaction(
