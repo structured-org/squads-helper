@@ -14,13 +14,28 @@ import {
 } from '@actions/alt';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
+import { confirmTransaction } from '@solana-developers/helpers';
 
 const logger = getLogger();
 
 async function main() {
+  if (process.env.TOKEN_AMOUNT == undefined) {
+    logger.error(
+      "It's required to declare TOKEN_AMOUNT (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+    );
+    process.exit(-1);
+  }
+  if (process.env.SLIPPAGE_TOLERANCE == undefined) {
+    logger.error(
+      "It's required to declare SLIPPAGE_TOLERANCE (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+    );
+    process.exit(-1);
+  }
+  const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
+    /^(\d+(?:\.\d+)?)([A-Z]+)$/,
+  );
   const config = getConfig(process.env.CONFIG_PATH);
   logger.info('Read config');
-
   // We need to have ALT for further addLiquidity2 instruction contraction
   if (config.provide_liquidity.alt_table === undefined) {
     const createTable: UseAltRawInstruction = await useAltRawInstruction(
@@ -44,28 +59,37 @@ async function main() {
       `Table creation simulation success -- ${createTable.lookupTableAddress.toBase58()}`,
     );
     logger.info('Broadcasting transaction');
-    const transactionHash = await config.anchor_provider.sendAndConfirm(
-      tx,
-      [config.keypair],
-      {
-        commitment: 'confirmed',
-        skipPreflight: true,
-        preflightCommitment: 'confirmed',
-      },
+    const transactionHash =
+      await config.anchor_provider.connection.sendTransaction(
+        tx,
+        [config.keypair],
+        {
+          skipPreflight: true,
+          preflightCommitment: 'confirmed',
+        },
+      );
+    logger.info(`Broadcasting transaction success -- ${transactionHash}`);
+    config.provide_liquidity.alt_table =
+      createTable.lookupTableAddress.toBase58();
+    await confirmTransaction(
+      config.anchor_provider.connection,
+      transactionHash,
+      'finalized',
     );
-    logger.info(`Broadcasting transaction success ${transactionHash}`);
-    config.multisig_ata = createTable.lookupTableAddress.toBase58();
+  } else {
+    logger.info(`ALT table defined -- ${config.provide_liquidity.alt_table!}`);
   }
 
   const multisigKey = new web3.PublicKey(config.multisig_address);
   const lookupTableAccount = (
     await config.anchor_provider.connection.getAddressLookupTable(
-      new web3.PublicKey(config.multisig_ata),
+      new web3.PublicKey(config.provide_liquidity.alt_table!),
     )
   ).value;
   const addLiquidityInstruction = await prepareRawInstruction(
     config.anchor_provider,
-    config.provide_liquidity.coins.get('USDC'),
+    amount,
+    config.provide_liquidity.coins.get(denom),
     config.provide_liquidity.program_idl,
     config.multisig_ata,
     config.provide_liquidity.jlp_address,
@@ -99,27 +123,32 @@ async function main() {
     config.anchor_provider,
     config.keypair.publicKey,
   );
-
-  const tx = new web3.Transaction({
-    recentBlockhash: (
-      await config.anchor_provider.connection.getLatestBlockhash()
-    ).blockhash,
-  }).add(
+  const tx = new web3.Transaction({}).add(
     createBatchInstruction,
     createProposalInstruction,
     addInstructionInstruction,
     proposalActivateInstruction,
     proposalApproveInstruction,
   );
-
   logger.info('Simulating providing liquidity propopsal');
   logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
   logger.info('Providing liquidity propopsal simulation success');
   logger.info('Broadcasting transaction');
-  const transactionHash = await config.anchor_provider.sendAndConfirm(tx, [
-    config.keypair,
-  ]);
-  logger.info(`Broadcasting transaction success ${transactionHash}`);
+  const transactionHash =
+    await config.anchor_provider.connection.sendTransaction(
+      tx,
+      [config.keypair],
+      {
+        skipPreflight: true,
+        preflightCommitment: 'confirmed',
+      },
+    );
+  await confirmTransaction(
+    config.anchor_provider.connection,
+    transactionHash,
+    'finalized',
+  );
+  logger.info(`Broadcasting transaction success -- ${transactionHash}`);
 }
 
 main();

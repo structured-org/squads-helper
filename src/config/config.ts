@@ -65,8 +65,8 @@ export function getConfig(configPath: string): Config {
     ),
   );
   const provider = AnchorProvider.local(process.env.ANCHOR_PROVIDER_URL, {
-    commitment: 'processed',
-    preflightCommitment: 'processed',
+    commitment: 'confirmed',
+    skipPreflight: true,
   });
 
   return {

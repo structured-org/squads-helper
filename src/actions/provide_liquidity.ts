@@ -5,6 +5,7 @@ import { AccountMeta } from '@solana/web3.js';
 
 export async function prepareRawInstruction(
   provider: AnchorProvider,
+  amount: string,
   provideLiquidityConfig: ProvideLiquidityConfig,
   programIdlPath: string,
   multisigAta: string,
@@ -69,7 +70,7 @@ export async function prepareRawInstruction(
     isSigner: false,
   }));
   const params = {
-    tokenAmountIn: new BN(123),
+    tokenAmountIn: new BN(amount),
     minLpAmountOut: new BN(1),
     tokenAmountPreSwap: null,
   };
