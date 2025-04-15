@@ -1,58 +1,19 @@
-import * as multisig from '@sqds/multisig';
 import invariant from 'invariant';
 import * as beet from '@metaplex-foundation/beet';
 import * as beetSolana from '@metaplex-foundation/beet-solana';
-import { AnchorProvider, web3 } from '@project-serum/anchor';
+import { web3 } from '@project-serum/anchor';
 import {
   AddressLookupTableAccount,
   AccountKeysFromLookups,
-  MessageAccountKeys,
   MessageHeader,
   TransactionInstruction,
   PublicKey,
+  MessageAccountKeys,
   MessageV0,
 } from '@solana/web3.js';
 import assert from 'assert';
 
-export async function createProposalRawInstruction(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  const proposalCreateInstruction = multisig.instructions.proposalCreate({
-    multisigPda: multisigKey,
-    transactionIndex: BigInt(transactionIndex),
-    creator: memberKey,
-    isDraft: true,
-  });
-  return proposalCreateInstruction;
-}
-
-export async function createBatchRawInstruction(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  const batchCreateInstruction = multisig.instructions.batchCreate({
-    batchIndex: BigInt(transactionIndex),
-    creator: memberKey,
-    multisigPda: multisigKey,
-    vaultIndex: 0,
-  });
-  return batchCreateInstruction;
-}
-
-type BatchAddTransactionArgs = {
+export type BatchAddTransactionArgs = {
   ephemeralSigners: number;
   transactionMessage: Uint8Array;
 };
@@ -66,7 +27,7 @@ const batchAddTransactionArgsBeet =
     'BatchAddTransactionArgs',
   );
 
-type BatchAddTransactionInstructionArgs = {
+export type BatchAddTransactionInstructionArgs = {
   args: BatchAddTransactionArgs;
 };
 
@@ -86,7 +47,7 @@ const batchAddTransactionInstructionDiscriminator = [
   89, 100, 224, 18, 69, 70, 54, 76,
 ];
 
-type BatchAddTransactionInstructionAccounts = {
+export type BatchAddTransactionInstructionAccounts = {
   multisig: web3.PublicKey;
   proposal: web3.PublicKey;
   batch: web3.PublicKey;
@@ -97,7 +58,7 @@ type BatchAddTransactionInstructionAccounts = {
   anchorRemainingAccounts?: web3.AccountMeta[];
 };
 
-function createBatchAddTransactionInstruction(
+export function createBatchAddTransactionInstruction(
   accounts: BatchAddTransactionInstructionAccounts,
   args: BatchAddTransactionInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf'),
@@ -158,7 +119,7 @@ function createBatchAddTransactionInstruction(
   return ix;
 }
 
-type TransactionMessage = {
+export type TransactionMessage = {
   numSigners: number;
   numWritableSigners: number;
   numWritableNonSigners: number;
@@ -167,13 +128,13 @@ type TransactionMessage = {
   addressTableLookups: MessageAddressTableLookup[];
 };
 
-type CompiledMsInstruction = {
+export type CompiledMsInstruction = {
   programIdIndex: number;
   accountIndexes: number[];
   data: number[];
 };
 
-function fixedSizeSmallArray<T, V = Partial<T>>(
+export function fixedSizeSmallArray<T, V = Partial<T>>(
   lengthBeet: beet.FixedSizeBeet<number>,
   elements: beet.FixedSizeBeet<T, V>[],
   elementsByteSize: number,
@@ -216,7 +177,7 @@ function fixedSizeSmallArray<T, V = Partial<T>>(
   };
 }
 
-function smallArray<T, V = Partial<T>>(
+export function smallArray<T, V = Partial<T>>(
   lengthBeet: beet.FixedSizeBeet<number>,
   element: beet.Beet<T, V>,
 ): beet.FixableBeet<T[], V[]> {
@@ -264,7 +225,7 @@ function smallArray<T, V = Partial<T>>(
   };
 }
 
-type MessageAddressTableLookup = {
+export type MessageAddressTableLookup = {
   /** Address lookup table account key */
   accountKey: web3.PublicKey;
   /** List of indexes used to load writable account addresses */
@@ -293,7 +254,7 @@ const compiledMsInstructionBeet =
     'CompiledMsInstruction',
   );
 
-const transactionMessageBeet =
+export const transactionMessageBeet =
   new beet.FixableBeetArgsStruct<TransactionMessage>(
     [
       ['numSigners', beet.u8],
@@ -315,7 +276,7 @@ export type CompiledKeyMeta = {
   isInvoked: boolean;
 };
 
-type KeyMetaMap = Map<string, CompiledKeyMeta>;
+export type KeyMetaMap = Map<string, CompiledKeyMeta>;
 
 /**
  *  This is almost completely copy-pasted from solana-web3.js and slightly adapted to work with "wrapped" transaction messaged such as in VaultTransaction.
@@ -520,138 +481,5 @@ export function compileToWrappedMessageV0({
     recentBlockhash,
     compiledInstructions,
     addressTableLookups,
-  });
-}
-
-export async function batchAddRawInstructionV0(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-  instruction: web3.TransactionInstruction,
-  multisigAta: string,
-  altData: AddressLookupTableAccount,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  const [proposalPda] = multisig.getProposalPda({
-    multisigPda: multisigKey,
-    transactionIndex: BigInt(transactionIndex),
-    programId: multisig.PROGRAM_ID,
-  });
-  const [batchPda] = multisig.getTransactionPda({
-    multisigPda: multisigKey,
-    index: BigInt(transactionIndex),
-    programId: multisig.PROGRAM_ID,
-  });
-  const [batchTransactionPda] = multisig.getBatchTransactionPda({
-    multisigPda: multisigKey,
-    batchIndex: BigInt(transactionIndex),
-    transactionIndex: 1,
-    programId: multisig.PROGRAM_ID,
-  });
-  const compiledMessage = compileToWrappedMessageV0({
-    payerKey: new web3.PublicKey(multisigAta),
-    recentBlockhash: (await provider.connection.getLatestBlockhash()).blockhash,
-    instructions: [instruction],
-    addressLookupTableAccounts: [altData],
-  });
-  const [transactionMessageBytes] = transactionMessageBeet.serialize({
-    numSigners: compiledMessage.header.numRequiredSignatures,
-    numWritableSigners:
-      compiledMessage.header.numRequiredSignatures -
-      compiledMessage.header.numReadonlySignedAccounts,
-    numWritableNonSigners:
-      compiledMessage.staticAccountKeys.length -
-      compiledMessage.header.numRequiredSignatures -
-      compiledMessage.header.numReadonlyUnsignedAccounts,
-    accountKeys: compiledMessage.staticAccountKeys,
-    instructions: compiledMessage.compiledInstructions.map((ix) => ({
-      programIdIndex: ix.programIdIndex,
-      accountIndexes: ix.accountKeyIndexes,
-      data: Array.from(ix.data),
-    })),
-    addressTableLookups: compiledMessage.addressTableLookups,
-  });
-  return createBatchAddTransactionInstruction(
-    {
-      multisig: multisigKey,
-      member: memberKey,
-      proposal: proposalPda,
-      rentPayer: memberKey,
-      batch: batchPda,
-      transaction: batchTransactionPda,
-    },
-    {
-      args: {
-        ephemeralSigners: 0,
-        transactionMessage: transactionMessageBytes,
-      },
-    },
-    multisig.PROGRAM_ID,
-  );
-}
-
-export async function batchAddRawInstruction(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-  multisigAta: string,
-  instruction: web3.TransactionInstruction,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  return multisig.instructions.batchAddTransaction({
-    batchIndex: BigInt(transactionIndex),
-    multisigPda: multisigKey,
-    vaultIndex: 0,
-    transactionMessage: new web3.TransactionMessage({
-      payerKey: new web3.PublicKey(multisigAta),
-      recentBlockhash: (await provider.connection.getLatestBlockhash())
-        .blockhash,
-      instructions: [instruction],
-    }),
-    transactionIndex: 1,
-    ephemeralSigners: 0,
-    member: memberKey,
-  });
-}
-
-export async function proposalActivateRawInstruction(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  return multisig.instructions.proposalActivate({
-    multisigPda: multisigKey,
-    member: memberKey,
-    transactionIndex: BigInt(transactionIndex),
-  });
-}
-
-export async function proposalApproveRawInstruction(
-  multisigKey: web3.PublicKey,
-  provider: AnchorProvider,
-  memberKey: web3.PublicKey,
-): Promise<web3.TransactionInstruction> {
-  const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-    provider.connection,
-    multisigKey,
-  );
-  const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-  return multisig.instructions.proposalApprove({
-    multisigPda: multisigKey,
-    member: memberKey,
-    transactionIndex: BigInt(transactionIndex),
   });
 }

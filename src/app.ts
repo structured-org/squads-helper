@@ -6,19 +6,61 @@ import {
   batchAddRawInstructionV0,
   proposalActivateRawInstruction,
   proposalApproveRawInstruction,
-} from '@actions/create_proposal';
+} from '@actions/create_proposal/create_proposal';
+import {
+  useAltRawInstruction,
+  registerAltRawInstruction,
+  UseAltRawInstruction,
+} from '@actions/alt';
 import { web3 } from '@project-serum/anchor';
+import { getLogger } from '@lib/logger';
+
+const logger = getLogger();
 
 async function main() {
   const config = getConfig(process.env.CONFIG_PATH);
-  const multisigKey = new web3.PublicKey(config.multisig_address);
+  logger.info('Read config');
 
-  const lookupTableAddress = new web3.PublicKey(
-    '8ytqcjgNJB87rWdJ1RQw1MSA5ZKgnrpLCvM1zbPC5jS8',
-  );
+  // We need to have ALT for further addLiquidity2 instruction contraction
+  if (config.provide_liquidity.alt_table === undefined) {
+    const createTable: UseAltRawInstruction = await useAltRawInstruction(
+      config.anchor_provider,
+      config.keypair.publicKey,
+    );
+    const registerAccounts = registerAltRawInstruction(
+      config.keypair.publicKey,
+      createTable.lookupTableAddress,
+      config.provide_liquidity.accounts.map(
+        (account) => new web3.PublicKey(account),
+      ),
+    );
+    const tx = new web3.Transaction().add(
+      createTable.lookupTableInstruction,
+      registerAccounts,
+    );
+    logger.info('Simulating table creation');
+    logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
+    logger.info(
+      `Table creation simulation success -- ${createTable.lookupTableAddress.toBase58()}`,
+    );
+    logger.info('Broadcasting transaction');
+    const transactionHash = await config.anchor_provider.sendAndConfirm(
+      tx,
+      [config.keypair],
+      {
+        commitment: 'confirmed',
+        skipPreflight: true,
+        preflightCommitment: 'confirmed',
+      },
+    );
+    logger.info(`Broadcasting transaction success ${transactionHash}`);
+    config.multisig_ata = createTable.lookupTableAddress.toBase58();
+  }
+
+  const multisigKey = new web3.PublicKey(config.multisig_address);
   const lookupTableAccount = (
     await config.anchor_provider.connection.getAddressLookupTable(
-      lookupTableAddress,
+      new web3.PublicKey(config.multisig_ata),
     )
   ).value;
   const addLiquidityInstruction = await prepareRawInstruction(
@@ -29,12 +71,12 @@ async function main() {
     config.provide_liquidity.jlp_address,
     config.provide_liquidity.accounts,
   );
-  const createProposalInstruction = await createProposalRawInstruction(
+  const createBatchInstruction = await createBatchRawInstruction(
     multisigKey,
     config.anchor_provider,
     config.keypair.publicKey,
   );
-  const createBatchInstruction = await createBatchRawInstruction(
+  const createProposalInstruction = await createProposalRawInstruction(
     multisigKey,
     config.anchor_provider,
     config.keypair.publicKey,
@@ -70,10 +112,14 @@ async function main() {
     proposalApproveInstruction,
   );
 
-  console.log(await config.anchor_provider.simulate(tx, [config.keypair]));
-  console.log(
-    await config.anchor_provider.sendAndConfirm(tx, [config.keypair]),
-  );
+  logger.info('Simulating providing liquidity propopsal');
+  logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
+  logger.info('Providing liquidity propopsal simulation success');
+  logger.info('Broadcasting transaction');
+  const transactionHash = await config.anchor_provider.sendAndConfirm(tx, [
+    config.keypair,
+  ]);
+  logger.info(`Broadcasting transaction success ${transactionHash}`);
 }
 
 main();

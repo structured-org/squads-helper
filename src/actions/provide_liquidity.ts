@@ -92,11 +92,5 @@ export async function prepareRawInstruction(
       program,
     })
     .remainingAccounts(remainingAccounts);
-  try {
-    await provider.simulate(await transaction.transaction());
-  } catch (err) {
-    console.error('Error when tried to simulate given transaction', err);
-    process.exit(-1);
-  }
   return await transaction.instruction();
 }

@@ -27,6 +27,7 @@ type ConfigFile = {
   provide_liquidity: {
     program_idl: string;
     jlp_address: string;
+    alt_table?: string;
     accounts: string[];
     coins: ProvideLiquidityConfig[];
   };
@@ -46,6 +47,7 @@ export type Config = {
   provide_liquidity: {
     program_idl: string;
     jlp_address: string;
+    alt_table?: string;
     accounts: string[];
     coins: Map<string, ProvideLiquidityConfig>;
   };
@@ -76,6 +78,7 @@ export function getConfig(configPath: string): Config {
     provide_liquidity: {
       program_idl: config.provide_liquidity.program_idl,
       jlp_address: config.provide_liquidity.jlp_address,
+      alt_table: config.provide_liquidity.alt_table,
       accounts: config.provide_liquidity.accounts,
       coins: new Map(
         config.provide_liquidity.coins.map((coin) => [coin.coin, coin]),
