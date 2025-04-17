@@ -15,6 +15,8 @@ export type PoolAum = {
   AUM: BigNumber;
 };
 
+const JLP_PRECISION: number = 6;
+
 export class Jupiter {
   private logger: Logger;
   private config: Config;
@@ -152,7 +154,7 @@ export class Jupiter {
       slippageTolerance,
     );
     const minLpTokenAmount = minLpTokenAmountValue
-      .mul(Math.pow(10, coin.precision))
+      .mul(Math.pow(10, JLP_PRECISION))
       .round();
     this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
     this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);

@@ -22,9 +22,9 @@ async function main() {
   const provideLiquidityIx = await jlp.provideLiquidityIx(
     config.squads_multisig.vault_pda,
     {
-      denom: 'USDC',
-      amount: bignumber(123),
-      precision: 6,
+      denom: 'WETH',
+      amount: bignumber(100),
+      precision: 8,
     },
     0.01,
   );
@@ -51,7 +51,7 @@ async function main() {
     ),
     [config.keypair],
   );
-  console.log(res);
+  // console.log(res);
 }
 
 main();
