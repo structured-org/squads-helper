@@ -10,7 +10,8 @@
     "paths": {
       "@config/*": ["./src/config/*"],
       "@actions/*": ["./src/actions/*"],
-      "@lib/*": ["./src/lib/*"]
+      "@lib/*": ["./src/lib/*"],
+      "@idl/*": ["./idl/*"]
     }
   },
   "ts-node": {
