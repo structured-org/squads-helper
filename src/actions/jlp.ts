@@ -115,7 +115,10 @@ export class Jupiter {
     return round(minLpAmount, 6);
   }
 
-  async provideLiquidityIx(coin: Coin): Promise<web3.TransactionInstruction> {
+  async provideLiquidityIx(
+    provider: web3.PublicKey,
+    coin: Coin,
+  ): Promise<web3.TransactionInstruction> {
     const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
     const program = inputCoin.input_accounts.program;
     const programInstance = new Program(
@@ -126,14 +129,14 @@ export class Jupiter {
     const fundingAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
         new web3.PublicKey(inputCoin.token_address),
-        this.config.squads_multisig.vault_pda,
+        provider,
         true,
       ).toBase58(),
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
         new web3.PublicKey(this.config.jupiter_perps.lp_token_mint),
-        this.config.squads_multisig.vault_pda,
+        provider,
         true,
       ).toBase58(),
     );
@@ -151,7 +154,7 @@ export class Jupiter {
     const transaction = programInstance.methods
       .addLiquidity2(params)
       .accounts({
-        owner: this.config.squads_multisig.vault_pda,
+        owner: provider,
         fundingAccount,
         lpTokenAccount,
         transferAuthority: inputCoin.input_accounts.transfer_authority,
