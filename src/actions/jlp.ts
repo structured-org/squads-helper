@@ -1,9 +1,10 @@
 import { Logger } from 'pino';
-import { Program } from '@project-serum/anchor';
-import { web3 } from '@project-serum/anchor';
 import { type Config } from '@config/config';
 import { BigNumber, bignumber, round } from 'mathjs';
 import { Coin } from '@lib/coin';
+import { web3, Program, BN } from '@project-serum/anchor';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { AccountMeta } from '@solana/web3.js';
 
 export type PoolAum = {
   WSOL: BigNumber;
@@ -112,5 +113,62 @@ export class Jupiter {
       `(${round(totalTokenPrice, 3)} * (1.0 - ${slippageTolerance})) / (${round(virtualPrice, 3)}) = ${round(minLpAmount, 3)}`,
     );
     return round(minLpAmount, 6);
+  }
+
+  async provideLiquidityIx(coin: Coin): Promise<web3.TransactionInstruction> {
+    const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
+    const program = inputCoin.input_accounts.program;
+    const programInstance = new Program(
+      this.config.jupiter_perps.program_idl,
+      program,
+      this.config.anchor_provider,
+    );
+    const fundingAccount = new web3.PublicKey(
+      getAssociatedTokenAddressSync(
+        new web3.PublicKey(inputCoin.token_address),
+        this.config.squads_multisig.vault_pda,
+        true,
+      ).toBase58(),
+    );
+    const lpTokenAccount = new web3.PublicKey(
+      getAssociatedTokenAddressSync(
+        new web3.PublicKey(this.config.jupiter_perps.lp_token_mint),
+        this.config.squads_multisig.vault_pda,
+        true,
+      ).toBase58(),
+    );
+    const remainingAccounts: AccountMeta[] =
+      this.config.jupiter_perps.accounts.map((account) => ({
+        pubkey: new web3.PublicKey(account),
+        isWritable: false,
+        isSigner: false,
+      }));
+    const params = {
+      tokenAmountIn: new BN(coin.amount.toString()),
+      minLpAmountOut: new BN(1),
+      tokenAmountPreSwap: null,
+    };
+    const transaction = programInstance.methods
+      .addLiquidity2(params)
+      .accounts({
+        owner: this.config.squads_multisig.vault_pda,
+        fundingAccount,
+        lpTokenAccount,
+        transferAuthority: inputCoin.input_accounts.transfer_authority,
+        perpetuals: inputCoin.input_accounts.perpetuals,
+        pool: inputCoin.input_accounts.pool,
+        custody: inputCoin.input_accounts.custody,
+        custodyDovesPriceAccount:
+          inputCoin.input_accounts.custody_doves_price_account,
+        custodyPythnetPriceAccount:
+          inputCoin.input_accounts.custody_pythnet_price_account,
+        custodyTokenAccount: inputCoin.input_accounts.custody_token_account,
+        lpTokenMint: inputCoin.input_accounts.lp_token_mint,
+        tokenProgram: inputCoin.input_accounts.token_program,
+        eventAuthority: inputCoin.input_accounts.event_authority,
+        program: inputCoin.input_accounts.program,
+      })
+      .remainingAccounts(remainingAccounts);
+    return await transaction.instruction();
   }
 }
