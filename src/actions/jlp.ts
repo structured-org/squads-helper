@@ -112,7 +112,7 @@ export class Jupiter {
       .div(virtualPrice)
       .mul(1.0 - slippageTolerance);
     this.logger.info(
-      `(${round(totalTokenPrice, 3)} * (1.0 - ${slippageTolerance})) / (${round(virtualPrice, 3)}) = ${round(minLpAmount, 3)}`,
+      `(${round(totalTokenPrice, coin.precision)} * (1.0 - ${slippageTolerance})) / (${round(virtualPrice, 3)}) = ${round(minLpAmount, JLP_PRECISION)}`,
     );
     return minLpAmount;
   }
