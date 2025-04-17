@@ -112,12 +112,13 @@ export class Jupiter {
     this.logger.info(
       `(${round(totalTokenPrice, 3)} * (1.0 - ${slippageTolerance})) / (${round(virtualPrice, 3)}) = ${round(minLpAmount, 3)}`,
     );
-    return round(minLpAmount, 6);
+    return minLpAmount;
   }
 
   async provideLiquidityIx(
     provider: web3.PublicKey,
     coin: Coin,
+    slippageTolerance: number,
   ): Promise<web3.TransactionInstruction> {
     const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
     const program = inputCoin.input_accounts.program;
@@ -146,9 +147,18 @@ export class Jupiter {
         isWritable: false,
         isSigner: false,
       }));
+    const minLpTokenAmountValue = await this.getLpTokenAmount(
+      coin,
+      slippageTolerance,
+    );
+    const minLpTokenAmount = minLpTokenAmountValue
+      .mul(Math.pow(10, coin.precision))
+      .round();
+    this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
+    this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     const params = {
       tokenAmountIn: new BN(coin.amount.toString()),
-      minLpAmountOut: new BN(1),
+      minLpAmountOut: new BN(minLpTokenAmount.toString()),
       tokenAmountPreSwap: null,
     };
     const transaction = programInstance.methods

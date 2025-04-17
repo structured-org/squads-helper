@@ -26,6 +26,7 @@ async function main() {
       amount: bignumber(123),
       precision: 6,
     },
+    0.01,
   );
   const lookupTableAccount = (
     await config.anchor_provider.connection.getAddressLookupTable(
