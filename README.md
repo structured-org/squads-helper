@@ -77,10 +77,22 @@ in any other token then all you need is to add a new item inside `coins` array, 
 
 # Running
 
-Now run your script like so:
+## Add Liquidity
+
+Example of how to run the script:
 
 ```bash
-TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start
+TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run add-liquidity
 ```
 
 Notice that `TOKEN_AMOUNT` is case sensetive and should be used with capital letters. `SLIPPAGE_TOLERANCE` is a ratio, where `1.0` is 100% and means how many tokens we're okay to loose in case if we provide a significant amount of tokens in accordance to pools total provided liquidity amount.
+
+## Remove Liquidity
+
+Example of how to run the script:
+
+```bash
+DENOM_OUT=USDC TOKEN_AMOUNT=123JLP SLIPPAGE_TOLERANCE=0.01 npm run remove-liquidity
+```
+
+Notice that `TOKEN_AMOUNT` is case sensetive and should be used with capital letters, in case of `remove-liquidity` script it always must have JLP denom at the end. DENOM_OUT is a denomination of a token you want to perform a withdrawal in. `SLIPPAGE_TOLERANCE` is a ratio, where `1.0` is 100% and means how many tokens we're okay to loose in case if we provide a significant amount of tokens in accordance to pools total provided liquidity amount.
