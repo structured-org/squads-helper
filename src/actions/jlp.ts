@@ -83,7 +83,9 @@ export class Jupiter {
   async getLpTokenTotalSupply(): Promise<BigNumber> {
     const jlpTotalSupply = (
       await this.config.anchor_provider.connection.getTokenSupply(
-        new web3.PublicKey(this.config.jupiter_perps.lp_token_mint),
+        new web3.PublicKey(
+          this.config.jupiter_perps.lp_token_mint.token_address,
+        ),
       )
     ).value.amount;
     this.logger.info(`JLP total supply -- ${jlpTotalSupply}`);
@@ -117,13 +119,31 @@ export class Jupiter {
     return minLpAmount;
   }
 
+  async getTokenAmountOut(
+    lpIn: Coin,
+    denomOut: string,
+    slippageTolerance: number,
+  ): Promise<BigNumber> {
+    const totalSupply = await this.getLpTokenTotalSupply();
+    const poolData = await this.getPoolAum();
+    const poolAum = poolData.AUM;
+
+    const virtualPrice = poolAum.mul(Math.pow(10, 6)).div(totalSupply);
+    const lpInTotalPrice = virtualPrice.mul(lpIn.amount).div(Math.pow(10, 6));
+    const tokenPrice = poolData[denomOut]!;
+    const tokenAmountOut = lpInTotalPrice
+      .div(tokenPrice)
+      .mul(1.0 - slippageTolerance);
+    return bignumber(tokenAmountOut);
+  }
+
   async removeLiquidityIx(
     provider: web3.PublicKey,
     lpIn: Coin,
-    coinOutDenom: string,
+    denomOut: string,
     slippageTolerance: number,
   ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.config.jupiter_perps.coins.get(coinOutDenom)!;
+    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
     const program = this.config.jupiter_perps.program;
     const programInstance = new Program(
       this.config.jupiter_perps.program_idl,
@@ -150,9 +170,19 @@ export class Jupiter {
         isWritable: false,
         isSigner: false,
       }));
+    const amountTokenOut = await this.getTokenAmountOut(
+      lpIn,
+      denomOut,
+      slippageTolerance,
+    );
+    const minAmountTokenOut = amountTokenOut
+      .mul(Math.pow(10, outputCoin.decimals))
+      .round();
+    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(`minAmountOut -- ${minAmountTokenOut.toString()}`);
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
-      minAmountOut: new BN(1),
+      minAmountOut: new BN(minAmountTokenOut.toString()),
     };
     const transaction = programInstance.methods
       .removeLiquidity2(params)

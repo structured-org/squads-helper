@@ -21,11 +21,11 @@ async function main() {
     config.squads_multisig.vault_pda,
     {
       denom: 'JLP',
-      amount: bignumber(10),
+      amount: bignumber(1000000),
       precision: config.jupiter_perps.lp_token_mint.decimals,
     },
     'WETH',
-    1,
+    0.01,
   );
   const createBatchIx = await squads.createBatchIx();
   const createProposalIx = await squads.createProposalIx();
