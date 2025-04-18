@@ -119,20 +119,13 @@ async function main() {
   );
   const proposalActivateIx = await squads.proposalActivateIx();
   const proposalApproveIx = await squads.proposalApproveIx();
-  const tx = new web3.Transaction({
-    recentBlockhash: (
-      await config.anchor_provider.connection.getLatestBlockhash()
-    ).blockhash,
-    feePayer: config.keypair.publicKey,
-  }).add(
+  const tx = new web3.Transaction().add(
     createBatchIx,
     createProposalIx,
     addInstructionIx,
     proposalActivateIx,
     proposalApproveIx,
   );
-  tx.sign(config.keypair);
-  logger.info(`Serialized transaction -- ${tx.serialize().toString('base64')}`);
   logger.info(
     `Remove liquidity -- (DENOM_OUT=${process.env.DENOM_OUT} TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
   );
