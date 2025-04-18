@@ -5,8 +5,7 @@
   "license": "MIT",
   "scripts": {
     "add-liquidity": "node -r ts-node/register --env-file=./.env src/add_liquidity.ts",
-    "remove-liquidity": "node -r ts-node/register --env-file=./.env src/remove_liquidity.ts",
-    "verify": "node -r ts-node/register --env-file=./.env verifier/verify.ts"
+    "remove-liquidity": "node -r ts-node/register --env-file=./.env src/remove_liquidity.ts"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",
