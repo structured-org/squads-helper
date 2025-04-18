@@ -8,7 +8,6 @@ import {
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
 import { confirmTransaction } from '@solana-developers/helpers';
-
 import { bignumber } from 'mathjs';
 import { Jupiter } from '@actions/jlp';
 
@@ -20,13 +19,13 @@ const squads = new Squads(logger, config);
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
     logger.error(
-      "It's required to declare TOKEN_AMOUNT -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+      "It's required to declare TOKEN_AMOUNT -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run add-liquidity)",
     );
     process.exit(-1);
   }
   if (process.env.SLIPPAGE_TOLERANCE === undefined) {
     logger.error(
-      "It's required to declare SLIPPAGE_TOLERANCE -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start)",
+      "It's required to declare SLIPPAGE_TOLERANCE -- (TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run add-liquidity)",
     );
     process.exit(-1);
   }
