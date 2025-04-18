@@ -14,7 +14,11 @@ type ConfigFile = {
     alt_table?: string;
     pool: string;
     perpetuals: string;
-    lp_token_mint: string;
+    lp_token_mint: {
+      decimals: number;
+      coin: string;
+      token_address: string;
+    };
     accounts: Array<string>;
     coins: Array<{
       coin: 'WSOL' | 'USDC' | 'WETH' | 'USDT';
@@ -68,7 +72,11 @@ export type Config = {
   jupiter_perps: {
     program_idl: any;
     pool: web3.PublicKey;
-    lp_token_mint: web3.PublicKey;
+    lp_token_mint: {
+      decimals: number;
+      coin: string;
+      token_address: web3.PublicKey;
+    };
     perpetuals: web3.PublicKey;
     program: web3.PublicKey;
     alt_table?: web3.PublicKey;
@@ -118,7 +126,13 @@ export function getConfig(configPath: string): Config {
           encoding: 'utf-8',
         }),
       ),
-      lp_token_mint: new web3.PublicKey(config.jupiter_perps.lp_token_mint),
+      lp_token_mint: {
+        coin: config.jupiter_perps.lp_token_mint.coin,
+        decimals: config.jupiter_perps.lp_token_mint.decimals,
+        token_address: new web3.PublicKey(
+          config.jupiter_perps.lp_token_mint.token_address,
+        ),
+      },
       pool: new web3.PublicKey(config.jupiter_perps.pool),
       perpetuals: new web3.PublicKey(config.jupiter_perps.perpetuals),
       program: new web3.PublicKey(config.jupiter_perps.program),

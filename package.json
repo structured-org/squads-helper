@@ -4,7 +4,8 @@
   "description": "Solana JLP liquidity query application",
   "license": "MIT",
   "scripts": {
-    "start": "node -r ts-node/register --env-file=./.env src/app.ts"
+    "add-liquidity": "node -r ts-node/register --env-file=./.env src/add_liquidity.ts",
+    "remove-liquidity": "node -r ts-node/register --env-file=./.env src/remove_liquidity.ts"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",
