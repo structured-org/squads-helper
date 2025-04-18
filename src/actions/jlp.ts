@@ -229,7 +229,7 @@ export class Jupiter {
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
-        new web3.PublicKey(this.config.jupiter_perps.lp_token_mint),
+        this.config.jupiter_perps.lp_token_mint.token_address,
         provider,
         true,
       ).toBase58(),
