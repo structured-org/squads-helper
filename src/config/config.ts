@@ -57,6 +57,8 @@ type JupiterPerpsToken = {
   input_accounts: JupiterPerpsInputAccounts;
 };
 
+// this is not config actually
+// separate it into types
 export type Config = {
   anchor_provider: AnchorProvider;
   keypair: web3.Keypair;

@@ -83,4 +83,4 @@ Now run your script like so:
 TOKEN_AMOUNT=123USDC SLIPPAGE_TOLERANCE=0.01 npm run start
 ```
 
-Notice that `TOKEN_AMOUNT` is case sensetive and should be used with capital letters. `SLIPPAGE_TOLERANCE` is a ratio, where `1.0` is 100% and means how many tokens we're okay to loose in case if we provide a significant amount of tokens in accordance to pools total provided liquidity amount.
+`TOKEN_AMOUNT` is in micro tokens. Notice that `TOKEN_AMOUNT` is case sensetive and should be used with capital letters. `SLIPPAGE_TOLERANCE` is a ratio, where `1.0` is 100% and means how many tokens we're okay to loose in case if we provide a significant amount of tokens in accordance to pools total provided liquidity amount.
