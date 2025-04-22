@@ -90,7 +90,7 @@ function parseConfig(configPath: string): ConfigFile {
   return parse(content);
 }
 
-export function getConfigState(configPath: string): State {
+export function getStateFromConfig(configPath: string): State {
   const config: ConfigFile = parseConfig(configPath);
   const keypair = web3.Keypair.fromSecretKey(
     Buffer.from(

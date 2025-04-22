@@ -1,4 +1,4 @@
-import { getConfigState } from '@config/config';
+import { getStateFromConfig } from '@config/config';
 import { Squads } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
@@ -9,7 +9,7 @@ import { MultisigProvider } from '@lib/multisig_provider';
 import { simulateAndBroadcast } from '@lib/helpers';
 
 const logger = getLogger();
-const state = getConfigState(process.env.CONFIG_PATH);
+const state = getStateFromConfig(process.env.CONFIG_PATH);
 const jlp = new Jupiter(logger, state);
 const squads = new Squads(logger, state);
 const alt = new Alt(logger, state);
