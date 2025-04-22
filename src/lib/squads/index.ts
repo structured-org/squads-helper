@@ -5,7 +5,7 @@ import {
   transactionMessageBeet,
   compileToWrappedMessageV0,
   createBatchAddTransactionInstruction,
-} from '@actions/squads/internal';
+} from '@lib/squads/internal';
 
 import { type Config } from '@config/config';
 import { Logger } from 'pino';

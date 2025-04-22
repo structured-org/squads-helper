@@ -1,15 +1,15 @@
 import { getConfig } from '@config/config';
-import { Squads } from '@actions/squads/squads';
+import { Squads } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
 import { bignumber } from 'mathjs';
-import { Jupiter } from '@actions/jlp';
+import { Jupiter } from '@lib/jlp';
 import { confirmTransaction } from '@solana-developers/helpers';
 import {
   useAltRawInstruction,
   registerAltRawInstruction,
   UseAltRawInstruction,
-} from '@actions/alt';
+} from '@lib/alt';
 
 const logger = getLogger();
 const config = getConfig(process.env.CONFIG_PATH);

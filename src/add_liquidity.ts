@@ -1,20 +1,17 @@
 import { getConfig } from '@config/config';
-import { Squads } from '@actions/squads/squads';
-import {
-  useAltRawInstruction,
-  registerAltRawInstruction,
-  UseAltRawInstruction,
-} from '@actions/alt';
+import { Squads } from '@lib/squads';
+import { Alt } from '@lib/alt';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
-import { confirmTransaction } from '@solana-developers/helpers';
 import { bignumber } from 'mathjs';
-import { Jupiter } from '@actions/jlp';
+import { Jupiter } from '@lib/jlp';
+import { simulateAndBroadcast } from '@lib/helpers';
 
 const logger = getLogger();
 const config = getConfig(process.env.CONFIG_PATH);
 const jlp = new Jupiter(logger, config);
 const squads = new Squads(logger, config);
+const alt = new Alt(logger, config);
 
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
@@ -41,58 +38,17 @@ async function main() {
 
   // We need to have ALT for further addLiquidity2 instruction contraction
   if (config.jupiter_perps.alt_table === undefined) {
-    const createTable: UseAltRawInstruction = await useAltRawInstruction(
-      config.anchor_provider,
-      config.keypair.publicKey,
-    );
-    const registerAccounts = registerAltRawInstruction(
-      config.keypair.publicKey,
-      createTable.lookupTableAddress,
-      config.jupiter_perps.accounts.map(
-        (account) => new web3.PublicKey(account),
-      ),
-    );
-    const tx = new web3.Transaction().add(
-      createTable.lookupTableInstruction,
-      registerAccounts,
-    );
-    logger.info('Simulating table creation');
-    logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
-    logger.info(
-      `Table creation simulation success -- ${createTable.lookupTableAddress.toBase58()}`,
-    );
-    logger.info('Broadcasting transaction');
-    const transactionHash =
-      await config.anchor_provider.connection.sendTransaction(
-        tx,
-        [config.keypair],
-        {
-          skipPreflight: true,
-          preflightCommitment: 'confirmed',
-        },
-      );
-    logger.info(`Broadcasting transaction success -- ${transactionHash}`);
+    const createTable = await alt.createTable();
     config.jupiter_perps.alt_table = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
-    let confirmTransactionAttempt = 1;
-    for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
-      try {
-        await confirmTransaction(
-          config.anchor_provider.connection,
-          transactionHash,
-          'finalized',
-        );
-        break;
-      } catch (e) {
-        if (confirmTransactionAttempt === 3) {
-          throw e;
-        }
-        logger.warn(
-          `Failed to await ALT table creation -- attempt ${confirmTransactionAttempt}`,
-        );
-      }
-    }
+    await simulateAndBroadcast(
+      config.anchor_provider,
+      createTable.tx,
+      'table creation',
+      logger,
+      config.keypair,
+    );
   } else {
     logger.info(`ALT table defined -- ${config.jupiter_perps.alt_table!}`);
   }
@@ -128,38 +84,13 @@ async function main() {
   logger.info(
     `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
   );
-  logger.info('Simulating liquidity provision propopsal');
-  logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
-  logger.info('Liquidity provision propopsal simulation success');
-  logger.info('Broadcasting transaction');
-  const transactionHash =
-    await config.anchor_provider.connection.sendTransaction(
-      tx,
-      [config.keypair],
-      {
-        skipPreflight: true,
-        preflightCommitment: 'confirmed',
-      },
-    );
-  let confirmTransactionAttempt = 1;
-  for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
-    try {
-      await confirmTransaction(
-        config.anchor_provider.connection,
-        transactionHash,
-        'finalized',
-      );
-      break;
-    } catch (e) {
-      if (confirmTransactionAttempt === 3) {
-        throw e;
-      }
-      logger.warn(
-        `Failed to await proposal creation -- attempt ${confirmTransactionAttempt}`,
-      );
-    }
-  }
-  logger.info(`Broadcasting transaction success -- ${transactionHash}`);
+  await simulateAndBroadcast(
+    config.anchor_provider,
+    tx,
+    'liquidity provision propopsal',
+    logger,
+    config.keypair,
+  );
 }
 
 main();
