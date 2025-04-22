@@ -21,7 +21,7 @@ type ConfigFile = {
     };
     accounts: Array<string>;
     coins: Array<{
-      coin: 'WSOL' | 'USDC' | 'WETH' | 'USDT';
+      coin: 'WSOL' | 'USDC' | 'WETH' | 'USDT' | 'WBTC';
       decimals: number;
       token_address: string;
       input_accounts: {
@@ -61,7 +61,7 @@ export type JupiterPerpsToken = {
   input_accounts: JupiterPerpsInputAccounts;
 };
 
-export type Config = {
+export type State = {
   anchor_provider: AnchorProvider;
   keypair: web3.Keypair;
   squads_multisig: {
@@ -90,7 +90,7 @@ function parseConfig(configPath: string): ConfigFile {
   return parse(content);
 }
 
-export function getConfig(configPath: string): Config {
+export function getConfigState(configPath: string): State {
   const config: ConfigFile = parseConfig(configPath);
   const keypair = web3.Keypair.fromSecretKey(
     Buffer.from(

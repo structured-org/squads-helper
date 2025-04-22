@@ -1,4 +1,4 @@
-import { getConfig } from '@config/config';
+import { getConfigState } from '@config/config';
 import { Squads } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
@@ -9,11 +9,11 @@ import { MultisigProvider } from '@lib/multisig_provider';
 import { simulateAndBroadcast } from '@lib/helpers';
 
 const logger = getLogger();
-const config = getConfig(process.env.CONFIG_PATH);
-const jlp = new Jupiter(logger, config);
-const squads = new Squads(logger, config);
-const alt = new Alt(logger, config);
-const multisigProvider = new MultisigProvider(logger, config, jlp, squads, alt);
+const state = getConfigState(process.env.CONFIG_PATH);
+const jlp = new Jupiter(logger, state);
+const squads = new Squads(logger, state);
+const alt = new Alt(logger, state);
+const multisigProvider = new MultisigProvider(logger, state, jlp, squads, alt);
 
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
@@ -35,7 +35,6 @@ async function main() {
     process.exit(-1);
   }
   logger.debug('Reading the config');
-  const config = getConfig(process.env.CONFIG_PATH);
   const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
     /^(\d+(?:\.\d+)?)([A-Z]+)$/,
   );
@@ -43,7 +42,7 @@ async function main() {
     logger.error(`Given coin should has JLP denom -- ${denom}`);
     process.exit(-1);
   }
-  if (config.jupiter_perps.coins.get(process.env.DENOM_OUT) === undefined) {
+  if (state.jupiter_perps.coins.get(process.env.DENOM_OUT) === undefined) {
     logger.error(
       `Given DENOM_OUT doesn't exist for the given config -- ${process.env.DENOM_OUT}`,
     );
@@ -51,20 +50,20 @@ async function main() {
   }
 
   // We need to have ALT for further addLiquidity2 instruction contraction
-  if (config.jupiter_perps.alt_table === undefined) {
+  if (state.jupiter_perps.alt_table === undefined) {
     const createTable = await alt.createTable();
-    config.jupiter_perps.alt_table = new web3.PublicKey(
+    state.jupiter_perps.alt_table = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
     await simulateAndBroadcast(
-      config.anchor_provider,
+      state.anchor_provider,
       createTable.tx,
       'table creation',
       logger,
-      config.keypair,
+      state.keypair,
     );
   } else {
-    logger.info(`ALT table defined -- ${config.jupiter_perps.alt_table!}`);
+    logger.info(`ALT table defined -- ${state.jupiter_perps.alt_table!}`);
   }
 
   logger.info(
@@ -80,11 +79,11 @@ async function main() {
     },
   );
   await simulateAndBroadcast(
-    config.anchor_provider,
+    state.anchor_provider,
     tx,
     'absolute liquidity removal propopsal',
     logger,
-    config.keypair,
+    state.keypair,
   );
 }
 
