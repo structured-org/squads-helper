@@ -6,6 +6,7 @@ import { Logger } from 'pino';
 import { web3 } from '@project-serum/anchor';
 import { Coin } from '@lib/coin';
 import { bignumber } from 'mathjs';
+import { JLP_DENOM } from '@lib/jlp';
 
 export class MultisigProvider {
   private logger: Logger;
@@ -28,28 +29,18 @@ export class MultisigProvider {
     this.alt = alt;
   }
 
-  async createProvideLiquidityProposalTx(
-    slippageTolerance: number,
-    coin: Coin,
+  private async createProposalTx(
+    ix: web3.TransactionInstruction,
   ): Promise<web3.Transaction> {
     const lookupTableAccount = (
       await this.config.anchor_provider.connection.getAddressLookupTable(
         new web3.PublicKey(this.config.jupiter_perps.alt_table!),
       )
     ).value;
-    const addLiquidityIx = await this.jupiter.provideLiquidityIx(
-      this.config.squads_multisig.vault_pda,
-      {
-        denom: coin.denom,
-        amount: bignumber(coin.amount),
-        precision: coin.precision,
-      },
-      slippageTolerance,
-    );
     const createBatchIx = await this.squads.createBatchIx();
     const createProposalIx = await this.squads.createProposalIx();
     const addInstructionIx = await this.squads.batchAddIxV0(
-      addLiquidityIx,
+      ix,
       lookupTableAccount,
     );
     const proposalActivateIx = await this.squads.proposalActivateIx();
@@ -62,5 +53,43 @@ export class MultisigProvider {
       proposalApproveIx,
     );
     return tx;
+  }
+
+  async createProvideLiquidityProposalTx(
+    slippageTolerance: number,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    const addLiquidityIx = await this.jupiter.provideLiquidityIx(
+      this.config.squads_multisig.vault_pda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      slippageTolerance,
+    );
+    return await this.createProposalTx(addLiquidityIx);
+  }
+
+  async createRemoveLiquidityProposalTx(
+    slippageTolerance: number,
+    denomOut: string,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    if (coin.denom !== JLP_DENOM) {
+      throw `Given denom doesn't equal ${JLP_DENOM}`;
+    }
+
+    const removeLiquidityIx = await this.jupiter.removeLiquidityIx(
+      this.config.squads_multisig.vault_pda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      denomOut,
+      slippageTolerance,
+    );
+    return await this.createProposalTx(removeLiquidityIx);
   }
 }

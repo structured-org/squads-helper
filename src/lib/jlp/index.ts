@@ -6,7 +6,7 @@ import { web3, Program, BN } from '@project-serum/anchor';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AccountMeta } from '@solana/web3.js';
 
-export type PoolAum = {
+type PoolAum = {
   WSOL: BigNumber;
   WETH: BigNumber;
   WBTC: BigNumber;
@@ -15,7 +15,8 @@ export type PoolAum = {
   AUM: BigNumber;
 };
 
-const JLP_PRECISION: number = 6;
+export const JLP_PRECISION: number = 6;
+export const JLP_DENOM: string = 'JLP';
 
 export class Jupiter {
   private logger: Logger;
