@@ -35,7 +35,7 @@ async function main() {
     );
     process.exit(-1);
   }
-  logger.info('Reading the config');
+  logger.debug('Reading the config');
   const config = getConfig(process.env.CONFIG_PATH);
   const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
     /^(\d+(?:\.\d+)?)([A-Z]+)$/,
@@ -87,11 +87,24 @@ async function main() {
     config.jupiter_perps.alt_table = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
-    await confirmTransaction(
-      config.anchor_provider.connection,
-      transactionHash,
-      'finalized',
-    );
+    let confirmTransactionAttempt = 1;
+    for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
+      try {
+        await confirmTransaction(
+          config.anchor_provider.connection,
+          transactionHash,
+          'finalized',
+        );
+        break;
+      } catch (e) {
+        if (confirmTransactionAttempt === 3) {
+          throw e;
+        }
+        logger.warn(
+          `Failed to await ALT table creation -- attempt ${confirmTransactionAttempt}`,
+        );
+      }
+    }
   } else {
     logger.info(`ALT table defined -- ${config.jupiter_perps.alt_table!}`);
   }
@@ -142,11 +155,24 @@ async function main() {
         preflightCommitment: 'confirmed',
       },
     );
-  await confirmTransaction(
-    config.anchor_provider.connection,
-    transactionHash,
-    'finalized',
-  );
+  let confirmTransactionAttempt = 1;
+  for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
+    try {
+      await confirmTransaction(
+        config.anchor_provider.connection,
+        transactionHash,
+        'finalized',
+      );
+      break;
+    } catch (e) {
+      if (confirmTransactionAttempt === 3) {
+        throw e;
+      }
+      logger.warn(
+        `Failed to await proposal creation -- attempt ${confirmTransactionAttempt}`,
+      );
+    }
+  }
   logger.info(`Broadcasting transaction success -- ${transactionHash}`);
 }
 
