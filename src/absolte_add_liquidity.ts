@@ -64,7 +64,7 @@ async function main() {
   logger.info(
     `Absolute provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, ABSOLUTE_SLIPPAGE_TOLERANCE=${process.env.ABSOLUTE_SLIPPAGE_TOLERANCE})`,
   );
-  const tx = await multisigProvider.createProvideLiquidityAbsoluteProposalTx(
+  const tx = await multisigProvider.createAddLiquidityAbsoluteProposalTx(
     Number(process.env.ABSOLUTE_SLIPPAGE_TOLERANCE),
     {
       denom: denom,
