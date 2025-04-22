@@ -3,15 +3,17 @@ import { Squads } from '@lib/squads';
 import { Alt } from '@lib/alt';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
-import { bignumber } from 'mathjs';
 import { Jupiter } from '@lib/jlp';
 import { simulateAndBroadcast } from '@lib/helpers';
+import { MultisigProvider } from '@lib/multisig_provider';
+import { bignumber } from 'mathjs';
 
 const logger = getLogger();
 const config = getConfig(process.env.CONFIG_PATH);
 const jlp = new Jupiter(logger, config);
 const squads = new Squads(logger, config);
 const alt = new Alt(logger, config);
+const multisigProvider = new MultisigProvider(logger, config, jlp, squads, alt);
 
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
@@ -52,37 +54,17 @@ async function main() {
   } else {
     logger.info(`ALT table defined -- ${config.jupiter_perps.alt_table!}`);
   }
-  const lookupTableAccount = (
-    await config.anchor_provider.connection.getAddressLookupTable(
-      new web3.PublicKey(config.jupiter_perps.alt_table!),
-    )
-  ).value;
-  const addLiquidityIx = await jlp.provideLiquidityIx(
-    config.squads_multisig.vault_pda,
+
+  logger.info(
+    `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
+  );
+  const tx = await multisigProvider.createProvideLiquidityProposalTx(
+    Number(process.env.SLIPPAGE_TOLERANCE),
     {
       denom: denom,
       amount: bignumber(amount),
       precision: config.jupiter_perps.coins.get(denom)!.decimals,
     },
-    Number(process.env.SLIPPAGE_TOLERANCE),
-  );
-  const createBatchIx = await squads.createBatchIx();
-  const createProposalIx = await squads.createProposalIx();
-  const addInstructionIx = await squads.batchAddIxV0(
-    addLiquidityIx,
-    lookupTableAccount,
-  );
-  const proposalActivateIx = await squads.proposalActivateIx();
-  const proposalApproveIx = await squads.proposalApproveIx();
-  const tx = new web3.Transaction().add(
-    createBatchIx,
-    createProposalIx,
-    addInstructionIx,
-    proposalActivateIx,
-    proposalApproveIx,
-  );
-  logger.info(
-    `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
   );
   await simulateAndBroadcast(
     config.anchor_provider,
