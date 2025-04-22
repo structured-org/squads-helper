@@ -77,6 +77,8 @@ in any other token then all you need is to add a new item inside `coins` array, 
 
 # Running
 
+Please note that `TOKEN_AMOUNT` in both scripts has a microtoken (aka lowest) denomination. For example, for $USDC it's 6 and for $WETH it's 8
+
 ## Add Liquidity
 
 Example of how to run the script:
