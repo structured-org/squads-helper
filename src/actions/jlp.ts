@@ -58,6 +58,10 @@ export class Jupiter {
     const aumStr = txAum[txAum.length - 1];
     const reversedBuffer = Buffer.from(aumStr, 'base64').reverse();
     const parsedInteger = BigInt('0x' + reversedBuffer.toString('hex'));
+    /**
+     * We take precision everywhere here for 8 because Jupiter Pool gives back
+     * prices devided by 10^8. Result price is the USD price (with precision 6)
+     */
     const wsolPrice = bignumber(priceList[0]).div(Math.pow(10, 8));
     const wethPrice = bignumber(priceList[1]).div(Math.pow(10, 8));
     const wbtcPrice = bignumber(priceList[2]).div(Math.pow(10, 8));
