@@ -22,9 +22,9 @@ async function main() {
     );
     process.exit(-1);
   }
-  if (process.env.SLIPPAGE_TOLERANCE === undefined) {
+  if (process.env.ABSOLUTE_SLIPPAGE_TOLERANCE === undefined) {
     logger.error(
-      "It's required to declare SLIPPAGE_TOLERANCE -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP SLIPPAGE_TOLERANCE=0.01 npm run remove-liquidity)",
+      "It's required to declare ABSOLUTE_SLIPPAGE_TOLERANCE -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP ABSOLUTE_SLIPPAGE_TOLERANCE=1 npm run remove-liquidity)",
     );
     process.exit(-1);
   }
@@ -68,10 +68,10 @@ async function main() {
   }
 
   logger.info(
-    `Remove liquidity -- (DENOM_OUT=${process.env.DENOM_OUT} TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
+    `Absolute remove liquidity -- (DENOM_OUT=${process.env.DENOM_OUT} TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, ABSOLUTE_SLIPPAGE_TOLERANCE=${process.env.ABSOLUTE_SLIPPAGE_TOLERANCE})`,
   );
-  const tx = await multisigProvider.createRemoveLiquidityProposalTx(
-    Number(process.env.SLIPPAGE_TOLERANCE),
+  const tx = await multisigProvider.createRemoveLiquidityAbsoluteProposalTx(
+    Number(process.env.ABSOLUTE_SLIPPAGE_TOLERANCE),
     process.env.DENOM_OUT,
     {
       denom: denom,
@@ -82,7 +82,7 @@ async function main() {
   await simulateAndBroadcast(
     config.anchor_provider,
     tx,
-    'liquidity removal propopsal',
+    'absolute liquidity removal propopsal',
     logger,
     config.keypair,
   );

@@ -55,7 +55,7 @@ type JupiterPerpsInputAccounts = {
   program: web3.PublicKey;
 };
 
-type JupiterPerpsToken = {
+export type JupiterPerpsToken = {
   decimals: number;
   token_address: web3.PublicKey;
   input_accounts: JupiterPerpsInputAccounts;

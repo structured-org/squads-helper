@@ -1,5 +1,5 @@
 import { Logger } from 'pino';
-import { type Config } from '@config/config';
+import { JupiterPerpsToken, type Config } from '@config/config';
 import { BigNumber, bignumber, round } from 'mathjs';
 import { Coin } from '@lib/coin';
 import { web3, Program, BN } from '@project-serum/anchor';
@@ -142,13 +142,12 @@ export class Jupiter {
     return bignumber(tokenAmountOut);
   }
 
-  async removeLiquidityIx(
+  private async removeLiquidityIx(
     provider: web3.PublicKey,
     lpIn: Coin,
-    denomOut: string,
-    slippageTolerance: number,
+    outputCoin: JupiterPerpsToken,
+    minAmountTokenOut: BigNumber,
   ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
     const program = this.config.jupiter_perps.program;
     const programInstance = new Program(
       this.config.jupiter_perps.program_idl,
@@ -175,16 +174,6 @@ export class Jupiter {
         isWritable: false,
         isSigner: false,
       }));
-    const amountTokenOut = await this.getTokenAmountOut(
-      lpIn,
-      denomOut,
-      slippageTolerance,
-    );
-    const minAmountTokenOut = amountTokenOut
-      .mul(Math.pow(10, outputCoin.decimals))
-      .round();
-    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(`minAmountOut -- ${minAmountTokenOut.toString()}`);
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
       minAmountOut: new BN(minAmountTokenOut.toString()),
@@ -211,6 +200,48 @@ export class Jupiter {
       })
       .remainingAccounts(remainingAccounts);
     return await transaction.instruction();
+  }
+
+  async relativeRemoveLiquidityIx(
+    provider: web3.PublicKey,
+    lpIn: Coin,
+    denomOut: string,
+    slippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
+    const amountTokenOut = await this.getTokenAmountOut(
+      lpIn,
+      denomOut,
+      slippageTolerance,
+    );
+    const minAmountTokenOut = amountTokenOut
+      .mul(Math.pow(10, outputCoin.decimals))
+      .round();
+    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(`minAmountOut -- ${minAmountTokenOut.toString()}`);
+    return await this.removeLiquidityIx(
+      provider,
+      lpIn,
+      outputCoin,
+      minAmountTokenOut,
+    );
+  }
+
+  async absoluteRemoveLiquidityIx(
+    provider: web3.PublicKey,
+    lpIn: Coin,
+    denomOut: string,
+    absoluteSlippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
+    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(`minAmountOut -- ${absoluteSlippageTolerance.toString()}`);
+    return await this.removeLiquidityIx(
+      provider,
+      lpIn,
+      outputCoin,
+      bignumber(absoluteSlippageTolerance),
+    );
   }
 
   async provideLiquidityIx(

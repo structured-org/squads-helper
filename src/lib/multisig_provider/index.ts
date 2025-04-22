@@ -80,7 +80,7 @@ export class MultisigProvider {
       throw `Given denom doesn't equal ${JLP_DENOM}`;
     }
 
-    const removeLiquidityIx = await this.jupiter.removeLiquidityIx(
+    const removeLiquidityIx = await this.jupiter.relativeRemoveLiquidityIx(
       this.config.squads_multisig.vault_pda,
       {
         denom: coin.denom,
@@ -89,6 +89,28 @@ export class MultisigProvider {
       },
       denomOut,
       slippageTolerance,
+    );
+    return await this.createProposalTx(removeLiquidityIx);
+  }
+
+  async createRemoveLiquidityAbsoluteProposalTx(
+    absoluteSlippageTolerance: number,
+    denomOut: string,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    if (coin.denom !== JLP_DENOM) {
+      throw `Given denom doesn't equal ${JLP_DENOM}`;
+    }
+
+    const removeLiquidityIx = await this.jupiter.absoluteRemoveLiquidityIx(
+      this.config.squads_multisig.vault_pda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      denomOut,
+      absoluteSlippageTolerance,
     );
     return await this.createProposalTx(removeLiquidityIx);
   }
