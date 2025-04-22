@@ -18,19 +18,19 @@ const multisigProvider = new MultisigProvider(logger, config, jlp, squads, alt);
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
     logger.error(
-      "It's required to declare TOKEN_AMOUNT -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP SLIPPAGE_TOLERANCE=0.01 npm run remove-liquidity)",
+      "It's required to declare TOKEN_AMOUNT -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP ABSOLUTE_SLIPPAGE_TOLERANCE=1 npm run absolute-remove-liquidity)",
     );
     process.exit(-1);
   }
   if (process.env.ABSOLUTE_SLIPPAGE_TOLERANCE === undefined) {
     logger.error(
-      "It's required to declare ABSOLUTE_SLIPPAGE_TOLERANCE -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP ABSOLUTE_SLIPPAGE_TOLERANCE=1 npm run remove-liquidity)",
+      "It's required to declare ABSOLUTE_SLIPPAGE_TOLERANCE -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP ABSOLUTE_SLIPPAGE_TOLERANCE=1 npm run absolute-remove-liquidity)",
     );
     process.exit(-1);
   }
   if (process.env.DENOM_OUT === undefined) {
     logger.error(
-      "It's required to declare DENOM_OUT -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP SLIPPAGE_TOLERANCE=0.01 npm run remove-liquidity)",
+      "It's required to declare DENOM_OUT -- (DENOM_OUT=USDC TOKEN_AMOUNT=123JLP ABSOLUTE_SLIPPAGE_TOLERANCE=1 npm run absolute-remove-liquidity)",
     );
     process.exit(-1);
   }

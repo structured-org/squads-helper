@@ -244,10 +244,10 @@ export class Jupiter {
     );
   }
 
-  async provideLiquidityIx(
+  async addLiquidityIx(
     provider: web3.PublicKey,
     coin: Coin,
-    slippageTolerance: number,
+    minLpTokenAmount: BigNumber,
   ): Promise<web3.TransactionInstruction> {
     const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
     const program = this.config.jupiter_perps.program;
@@ -276,13 +276,6 @@ export class Jupiter {
         isWritable: false,
         isSigner: false,
       }));
-    const minLpTokenAmountValue = await this.getLpTokenAmount(
-      coin,
-      slippageTolerance,
-    );
-    const minLpTokenAmount = minLpTokenAmountValue
-      .mul(Math.pow(10, JLP_PRECISION))
-      .round();
     this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
     this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     const params = {
@@ -312,5 +305,38 @@ export class Jupiter {
       })
       .remainingAccounts(remainingAccounts);
     return await transaction.instruction();
+  }
+
+  async relativeAddLiquidityIx(
+    provider: web3.PublicKey,
+    coin: Coin,
+    slippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    const minLpTokenAmountValue = await this.getLpTokenAmount(
+      coin,
+      slippageTolerance,
+    );
+    const minLpTokenAmount = minLpTokenAmountValue
+      .mul(Math.pow(10, JLP_PRECISION))
+      .round();
+    this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
+    this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
+    return await this.addLiquidityIx(provider, coin, minLpTokenAmount);
+  }
+
+  async absoluteAddLiquidityIx(
+    provider: web3.PublicKey,
+    lpIn: Coin,
+    absoluteSlippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    this.logger.info(`tokenAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(
+      `minLpTokenAmount -- ${absoluteSlippageTolerance.toString()}`,
+    );
+    return await this.addLiquidityIx(
+      provider,
+      lpIn,
+      bignumber(absoluteSlippageTolerance),
+    );
   }
 }

@@ -55,11 +55,11 @@ export class MultisigProvider {
     return tx;
   }
 
-  async createProvideLiquidityProposalTx(
+  async createAddLiquidityProposalTx(
     slippageTolerance: number,
     coin: Coin,
   ): Promise<web3.Transaction> {
-    const addLiquidityIx = await this.jupiter.provideLiquidityIx(
+    const addLiquidityIx = await this.jupiter.relativeAddLiquidityIx(
       this.config.squads_multisig.vault_pda,
       {
         denom: coin.denom,
@@ -69,6 +69,22 @@ export class MultisigProvider {
       slippageTolerance,
     );
     return await this.createProposalTx(addLiquidityIx);
+  }
+
+  async createAddLiquidityAbsoluteProposalTx(
+    absoluteSlippageTolerance: number,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    const absoluteAddLiquidityIx = await this.jupiter.absoluteAddLiquidityIx(
+      this.config.squads_multisig.vault_pda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      absoluteSlippageTolerance,
+    );
+    return await this.createProposalTx(absoluteAddLiquidityIx);
   }
 
   async createRemoveLiquidityProposalTx(
@@ -102,16 +118,17 @@ export class MultisigProvider {
       throw `Given denom doesn't equal ${JLP_DENOM}`;
     }
 
-    const removeLiquidityIx = await this.jupiter.absoluteRemoveLiquidityIx(
-      this.config.squads_multisig.vault_pda,
-      {
-        denom: coin.denom,
-        amount: bignumber(coin.amount),
-        precision: coin.precision,
-      },
-      denomOut,
-      absoluteSlippageTolerance,
-    );
-    return await this.createProposalTx(removeLiquidityIx);
+    const absoluteRemoveLiquidityIx =
+      await this.jupiter.absoluteRemoveLiquidityIx(
+        this.config.squads_multisig.vault_pda,
+        {
+          denom: coin.denom,
+          amount: bignumber(coin.amount),
+          precision: coin.precision,
+        },
+        denomOut,
+        absoluteSlippageTolerance,
+      );
+    return await this.createProposalTx(absoluteRemoveLiquidityIx);
   }
 }

@@ -58,7 +58,7 @@ async function main() {
   logger.info(
     `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
   );
-  const tx = await multisigProvider.createProvideLiquidityProposalTx(
+  const tx = await multisigProvider.createAddLiquidityProposalTx(
     Number(process.env.SLIPPAGE_TOLERANCE),
     {
       denom: denom,
