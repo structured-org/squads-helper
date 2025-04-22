@@ -30,7 +30,7 @@ async function main() {
     );
     process.exit(-1);
   }
-  logger.info('Reading the config');
+  logger.debug('Reading the config');
   const config = getConfig(process.env.CONFIG_PATH);
   const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
     /^(\d+(?:\.\d+)?)([A-Z]+)$/,
@@ -40,6 +40,8 @@ async function main() {
     process.exit(-1);
   }
 
+  // Wrap the following logic into LpProvider class (or mb better name) and call methods
+  // The class must receive config and amount, denom as parameters
   // We need to have ALT for further addLiquidity2 instruction contraction
   if (config.jupiter_perps.alt_table === undefined) {
     const createTable: UseAltRawInstruction = await useAltRawInstruction(
@@ -63,6 +65,7 @@ async function main() {
       `Table creation simulation success -- ${createTable.lookupTableAddress.toBase58()}`,
     );
     logger.info('Broadcasting transaction');
+    // handle error
     const transactionHash =
       await config.anchor_provider.connection.sendTransaction(
         tx,
@@ -76,6 +79,7 @@ async function main() {
     config.jupiter_perps.alt_table = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
+    // handle error
     await confirmTransaction(
       config.anchor_provider.connection,
       transactionHash,
@@ -120,6 +124,7 @@ async function main() {
   logger.debug(await config.anchor_provider.simulate(tx, [config.keypair]));
   logger.info('Liquidity provision propopsal simulation success');
   logger.info('Broadcasting transaction');
+  // handle error
   const transactionHash =
     await config.anchor_provider.connection.sendTransaction(
       tx,
@@ -129,10 +134,12 @@ async function main() {
         preflightCommitment: 'confirmed',
       },
     );
+  logger.info('Confirming transaction: %s', transactionHash);
+  // handle error
   await confirmTransaction(
     config.anchor_provider.connection,
     transactionHash,
-    'finalized',
+    'max',
   );
   logger.info(`Broadcasting transaction success -- ${transactionHash}`);
 }

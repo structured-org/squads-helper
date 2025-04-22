@@ -26,11 +26,10 @@ export function registerAltRawInstruction(
   altAddress: web3.PublicKey,
   addresses: Array<web3.PublicKey>,
 ): web3.TransactionInstruction {
-  const extendInstruction = web3.AddressLookupTableProgram.extendLookupTable({
+  return web3.AddressLookupTableProgram.extendLookupTable({
     payer: authority,
     authority: authority,
     lookupTable: altAddress,
     addresses: addresses,
   });
-  return extendInstruction;
 }

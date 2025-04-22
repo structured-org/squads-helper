@@ -58,6 +58,9 @@ export class Jupiter {
     const aumStr = txAum[txAum.length - 1];
     const reversedBuffer = Buffer.from(aumStr, 'base64').reverse();
     const parsedInteger = BigInt('0x' + reversedBuffer.toString('hex'));
+    /**
+     * const TOKEN_PRECITIONS = {wsol: 8, weth: 8, wbtc: 8, usdc: 6, usdt: 6 ...};
+     */
     const wsolPrice = bignumber(priceList[0]).div(Math.pow(10, 8));
     const wethPrice = bignumber(priceList[1]).div(Math.pow(10, 8));
     const wbtcPrice = bignumber(priceList[2]).div(Math.pow(10, 8));
