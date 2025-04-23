@@ -1,50 +1,46 @@
-import { Config } from '@config/config';
-import { Alt } from '@lib/alt';
-import { Jupiter } from '@lib/jlp';
-import { Squads } from '@lib/squads';
+import { JupiterPerps } from '@lib/jlp';
+import { SquadsMultisig } from '@lib/squads';
 import { Logger } from 'pino';
 import { web3 } from '@project-serum/anchor';
 import { Coin } from '@lib/coin';
 import { bignumber } from 'mathjs';
 import { JLP_DENOM } from '@lib/jlp';
+import { type BaseApp } from '@config/config';
 
 export class MultisigProvider {
   private logger: Logger;
-  private config: Config;
-  private jupiter: Jupiter;
-  private squads: Squads;
-  private alt: Alt;
+  private jupiterPerps: JupiterPerps;
+  private squadsMultisig: SquadsMultisig;
+  private baseApp: BaseApp;
 
   constructor(
     logger: Logger,
-    config: Config,
-    jupiter: Jupiter,
-    squads: Squads,
-    alt: Alt,
+    jupiterPerps: JupiterPerps,
+    squadsMultisig: SquadsMultisig,
+    baseApp: BaseApp,
   ) {
     this.logger = logger;
-    this.config = config;
-    this.jupiter = jupiter;
-    this.squads = squads;
-    this.alt = alt;
+    this.jupiterPerps = jupiterPerps;
+    this.squadsMultisig = squadsMultisig;
+    this.baseApp = baseApp;
   }
 
   private async createProposalTx(
     ix: web3.TransactionInstruction,
   ): Promise<web3.Transaction> {
     const lookupTableAccount = (
-      await this.config.anchor_provider.connection.getAddressLookupTable(
-        new web3.PublicKey(this.config.jupiter_perps.alt_table!),
+      await this.baseApp.anchorProvider.connection.getAddressLookupTable(
+        new web3.PublicKey(this.jupiterPerps.app.altTable!),
       )
     ).value;
-    const createBatchIx = await this.squads.createBatchIx();
-    const createProposalIx = await this.squads.createProposalIx();
-    const addInstructionIx = await this.squads.batchAddIxV0(
+    const createBatchIx = await this.squadsMultisig.createBatchIx();
+    const createProposalIx = await this.squadsMultisig.createProposalIx();
+    const addInstructionIx = await this.squadsMultisig.batchAddIxV0(
       ix,
       lookupTableAccount,
     );
-    const proposalActivateIx = await this.squads.proposalActivateIx();
-    const proposalApproveIx = await this.squads.proposalApproveIx();
+    const proposalActivateIx = await this.squadsMultisig.proposalActivateIx();
+    const proposalApproveIx = await this.squadsMultisig.proposalApproveIx();
     const tx = new web3.Transaction().add(
       createBatchIx,
       createProposalIx,
@@ -59,8 +55,8 @@ export class MultisigProvider {
     slippageTolerance: number,
     coin: Coin,
   ): Promise<web3.Transaction> {
-    const addLiquidityIx = await this.jupiter.relativeAddLiquidityIx(
-      this.config.squads_multisig.vault_pda,
+    const addLiquidityIx = await this.jupiterPerps.relativeAddLiquidityIx(
+      this.squadsMultisig.app.vaultPda,
       {
         denom: coin.denom,
         amount: bignumber(coin.amount),
@@ -75,15 +71,16 @@ export class MultisigProvider {
     absoluteSlippageTolerance: number,
     coin: Coin,
   ): Promise<web3.Transaction> {
-    const absoluteAddLiquidityIx = await this.jupiter.absoluteAddLiquidityIx(
-      this.config.squads_multisig.vault_pda,
-      {
-        denom: coin.denom,
-        amount: bignumber(coin.amount),
-        precision: coin.precision,
-      },
-      absoluteSlippageTolerance,
-    );
+    const absoluteAddLiquidityIx =
+      await this.jupiterPerps.absoluteAddLiquidityIx(
+        this.squadsMultisig.app.vaultPda,
+        {
+          denom: coin.denom,
+          amount: bignumber(coin.amount),
+          precision: coin.precision,
+        },
+        absoluteSlippageTolerance,
+      );
     return await this.createProposalTx(absoluteAddLiquidityIx);
   }
 
@@ -96,8 +93,8 @@ export class MultisigProvider {
       throw `Given denom doesn't equal ${JLP_DENOM}`;
     }
 
-    const removeLiquidityIx = await this.jupiter.relativeRemoveLiquidityIx(
-      this.config.squads_multisig.vault_pda,
+    const removeLiquidityIx = await this.jupiterPerps.relativeRemoveLiquidityIx(
+      this.squadsMultisig.app.vaultPda,
       {
         denom: coin.denom,
         amount: bignumber(coin.amount),
@@ -119,8 +116,8 @@ export class MultisigProvider {
     }
 
     const absoluteRemoveLiquidityIx =
-      await this.jupiter.absoluteRemoveLiquidityIx(
-        this.config.squads_multisig.vault_pda,
+      await this.jupiterPerps.absoluteRemoveLiquidityIx(
+        this.squadsMultisig.app.vaultPda,
         {
           denom: coin.denom,
           amount: bignumber(coin.amount),

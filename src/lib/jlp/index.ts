@@ -1,5 +1,9 @@
 import { Logger } from 'pino';
-import { JupiterPerpsToken, type Config } from '@config/config';
+import {
+  JupiterPerpsToken,
+  type BaseApp,
+  type JupiterPerpsApp,
+} from '@config/config';
 import { BigNumber, bignumber, round } from 'mathjs';
 import { Coin } from '@lib/coin';
 import { web3, Program, BN } from '@project-serum/anchor';
@@ -18,32 +22,42 @@ type PoolAum = {
 export const JLP_PRECISION: number = 6;
 export const JLP_DENOM: string = 'JLP';
 
-export class Jupiter {
+export class JupiterPerps {
   private logger: Logger;
-  private config: Config;
+  private jupiterPerpsApp: JupiterPerpsApp;
+  private baseApp: BaseApp;
 
-  constructor(logger: Logger, config: Config) {
+  constructor(
+    logger: Logger,
+    baseApp: BaseApp,
+    jupiterPerpsApp: JupiterPerpsApp,
+  ) {
     this.logger = logger;
-    this.config = config;
+    this.jupiterPerpsApp = jupiterPerpsApp;
+    this.baseApp = baseApp;
+  }
+
+  get app(): JupiterPerpsApp {
+    return this.jupiterPerpsApp;
   }
 
   async getPoolAum(): Promise<PoolAum> {
-    const program = this.config.jupiter_perps.program;
-    const programIdl = this.config.jupiter_perps.program_idl;
+    const program = this.jupiterPerpsApp.program;
+    const programIdl = this.jupiterPerpsApp.programIdl;
     const programInstance = new Program(
       programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const txConfig = { mode: { max: {} } };
     const rawTx = programInstance.methods
       .getAssetsUnderManagement2(txConfig)
       .accounts({
-        perpetuals: this.config.jupiter_perps.perpetuals,
-        pool: this.config.jupiter_perps.pool,
+        perpetuals: this.jupiterPerpsApp.perpetuals,
+        pool: this.jupiterPerpsApp.pool,
       })
       .remainingAccounts(
-        this.config.jupiter_perps.accounts.map((account) => ({
+        this.jupiterPerpsApp.accounts.map((account) => ({
           pubkey: new web3.PublicKey(account),
           isWritable: false,
           isSigner: false,
@@ -87,10 +101,8 @@ export class Jupiter {
 
   async getLpTokenTotalSupply(): Promise<BigNumber> {
     const jlpTotalSupply = (
-      await this.config.anchor_provider.connection.getTokenSupply(
-        new web3.PublicKey(
-          this.config.jupiter_perps.lp_token_mint.token_address,
-        ),
+      await this.baseApp.anchorProvider.connection.getTokenSupply(
+        new web3.PublicKey(this.jupiterPerpsApp.lpTokenMint.tokenAddress),
       )
     ).value.amount;
     this.logger.info(`JLP total supply -- ${jlpTotalSupply}`);
@@ -148,15 +160,15 @@ export class Jupiter {
     outputCoin: JupiterPerpsToken,
     minAmountTokenOut: BigNumber,
   ): Promise<web3.TransactionInstruction> {
-    const program = this.config.jupiter_perps.program;
+    const program = this.jupiterPerpsApp.program;
     const programInstance = new Program(
-      this.config.jupiter_perps.program_idl,
+      this.jupiterPerpsApp.programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
-        this.config.jupiter_perps.lp_token_mint.token_address,
+        this.jupiterPerpsApp.lpTokenMint.tokenAddress,
         provider,
         true,
       ).toBase58(),
@@ -168,12 +180,13 @@ export class Jupiter {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] =
-      this.config.jupiter_perps.accounts.map((account) => ({
+    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
+      (account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }));
+      }),
+    );
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
       minAmountOut: new BN(minAmountTokenOut.toString()),
@@ -208,7 +221,7 @@ export class Jupiter {
     denomOut: string,
     slippageTolerance: number,
   ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
+    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
     const amountTokenOut = await this.getTokenAmountOut(
       lpIn,
       denomOut,
@@ -233,7 +246,7 @@ export class Jupiter {
     denomOut: string,
     absoluteSlippageTolerance: number,
   ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
+    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
     this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
     this.logger.info(`minAmountOut -- ${absoluteSlippageTolerance.toString()}`);
     return await this.removeLiquidityIx(
@@ -249,12 +262,12 @@ export class Jupiter {
     coin: Coin,
     minLpTokenAmount: BigNumber,
   ): Promise<web3.TransactionInstruction> {
-    const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
-    const program = this.config.jupiter_perps.program;
+    const inputCoin = this.jupiterPerpsApp.coins.get(coin.denom)!;
+    const program = this.jupiterPerpsApp.program;
     const programInstance = new Program(
-      this.config.jupiter_perps.program_idl,
+      this.jupiterPerpsApp.programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const fundingAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
@@ -265,17 +278,18 @@ export class Jupiter {
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
-        this.config.jupiter_perps.lp_token_mint.token_address,
+        this.jupiterPerpsApp.lpTokenMint.tokenAddress,
         provider,
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] =
-      this.config.jupiter_perps.accounts.map((account) => ({
+    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
+      (account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }));
+      }),
+    );
     this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
     this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     const params = {

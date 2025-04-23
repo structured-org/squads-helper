@@ -1,19 +1,32 @@
-import { getStateFromConfig } from '@config/config';
-import { Squads } from '@lib/squads';
+import {
+  getBaseApp,
+  parseConfig,
+  getJupiterPerpsAppFromConfig,
+  getSquadsMultisigAppFromConfig,
+} from '@config/config';
+import { SquadsMultisig } from '@lib/squads';
 import { Alt } from '@lib/alt';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
-import { Jupiter } from '@lib/jlp';
+import { JupiterPerps } from '@lib/jlp';
 import { simulateAndBroadcast } from '@lib/helpers';
 import { MultisigProvider } from '@lib/multisig_provider';
 import { bignumber } from 'mathjs';
 
 const logger = getLogger();
-const state = getStateFromConfig(process.env.CONFIG_PATH);
-const jlp = new Jupiter(logger, state);
-const squads = new Squads(logger, state);
-const alt = new Alt(logger, state);
-const multisigProvider = new MultisigProvider(logger, state, jlp, squads, alt);
+const config = parseConfig(process.env.CONFIG_PATH);
+const baseApp = getBaseApp();
+const jupiterPerpsApp = getJupiterPerpsAppFromConfig(config);
+const squadsMultisigApp = getSquadsMultisigAppFromConfig(config);
+const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
+const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
+const alt = new Alt(logger, baseApp);
+const multisigProvider = new MultisigProvider(
+  logger,
+  jupiterPerps,
+  squadsMultisig,
+  baseApp,
+);
 
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
@@ -32,28 +45,26 @@ async function main() {
   const [, amount, denom] = process.env.TOKEN_AMOUNT.match(
     /^(\d+(?:\.\d+)?)([A-Z]+)$/,
   );
-  if (state.jupiter_perps.coins.get(denom) === undefined) {
+  if (jupiterPerps.app.coins.get(denom) === undefined) {
     logger.error(`No such a coin described in the config -- ${denom}`);
     process.exit(-1);
   }
-
   // We need to have ALT for further addLiquidity2 instruction contraction
-  if (state.jupiter_perps.alt_table === undefined) {
-    const createTable = await alt.createTable();
-    state.jupiter_perps.alt_table = new web3.PublicKey(
+  if (jupiterPerps.app.altTable === undefined) {
+    const createTable = await alt.createTable(jupiterPerps.app.accounts);
+    jupiterPerps.app.altTable = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
     await simulateAndBroadcast(
-      state.anchor_provider,
+      baseApp.anchorProvider,
       createTable.tx,
       'table creation',
       logger,
-      state.keypair,
+      baseApp.keypair,
     );
   } else {
-    logger.info(`ALT table defined -- ${state.jupiter_perps.alt_table!}`);
+    logger.info(`ALT table defined -- ${jupiterPerps.app.altTable!}`);
   }
-
   logger.info(
     `Provide liquidity -- (TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, SLIPPAGE_TOLERANCE=${process.env.SLIPPAGE_TOLERANCE})`,
   );
@@ -62,15 +73,15 @@ async function main() {
     {
       denom: denom,
       amount: bignumber(amount),
-      precision: state.jupiter_perps.coins.get(denom)!.decimals,
+      precision: jupiterPerps.app.coins.get(denom)!.decimals,
     },
   );
   await simulateAndBroadcast(
-    state.anchor_provider,
+    baseApp.anchorProvider,
     tx,
     'liquidity provision propopsal',
     logger,
-    state.keypair,
+    baseApp.keypair,
   );
 }
 
