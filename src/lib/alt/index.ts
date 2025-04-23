@@ -33,15 +33,23 @@ export class Alt {
     });
   }
 
-  async createTable(accounts: Array<web3.PublicKey>): Promise<{
+  async createTable(altAccounts: Array<web3.PublicKey>): Promise<{
     tx: web3.Transaction;
     lookupTableAddress: web3.PublicKey;
   }> {
     const [lookupTableIx, lookupTableAddress] =
       await this.useAltRawInstruction();
+
+    this.logger.info(`ALT address -- ${lookupTableAddress}`);
+    for (let i = 1; i <= altAccounts.length; i += 1) {
+      this.logger.info(
+        `ALT account -- ${i}/${altAccounts.length} ${altAccounts[i - 1]}`,
+      );
+    }
+
     const registerNewAddressesIx = this.registerAltRawInstruction(
       lookupTableAddress,
-      accounts,
+      altAccounts,
     );
     return {
       tx: new web3.Transaction().add(lookupTableIx, registerNewAddressesIx),
