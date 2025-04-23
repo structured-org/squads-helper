@@ -4,11 +4,10 @@
   "description": "Solana JLP liquidity query application",
   "license": "MIT",
   "scripts": {
-    "start": "node -r ts-node/register --env-file=./.env src/app/app.ts",
-    "add-liquidity": "node -r ts-node/register --env-file=./.env src/add_liquidity.ts",
-    "remove-liquidity": "node -r ts-node/register --env-file=./.env src/remove_liquidity.ts",
-    "absolute-remove-liquidity": "node -r ts-node/register --env-file=./.env src/absolute_remove_liquidity.ts",
-    "absolute-add-liquidity": "node -r ts-node/register --env-file=./.env src/absolte_add_liquidity.ts"
+    "add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts add-liquidity",
+    "remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts remove-liquidity"
+    "absolute-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-add-liquidity"
+    "absolute-remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-remove-liquidity"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",
