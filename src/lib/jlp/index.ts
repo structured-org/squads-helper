@@ -290,8 +290,6 @@ export class JupiterPerps {
         isSigner: false,
       }),
     );
-    this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
-    this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     const params = {
       tokenAmountIn: new BN(coin.amount.toString()),
       minLpAmountOut: new BN(minLpTokenAmount.toString()),
