@@ -69,6 +69,16 @@ async function main() {
     );
   } else {
     logger.info(`ALT table defined -- ${jupiterPerps.app.altTable!}`);
+    const lookupTableAccount = (
+      await baseApp.anchorProvider.connection.getAddressLookupTable(
+        new web3.PublicKey(jupiterPerps.app.altTable!),
+      )
+    ).value;
+    for (let i = 1; i <= lookupTableAccount.state.addresses.length; i += 1) {
+      logger.info(
+        `ALT account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupTableAccount.state.addresses[i - 1]}`,
+      );
+    }
   }
 
   logger.info(

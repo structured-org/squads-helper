@@ -41,6 +41,9 @@ export class SquadsMultisig {
       creator: this.baseApp.keypair.publicKey,
       isDraft: true,
     });
+    this.logger.info(
+      `Create Proposal Transaction Index -- ${transactionIndex}`,
+    );
     return proposalCreateInstruction;
   }
 
@@ -56,6 +59,7 @@ export class SquadsMultisig {
       multisigPda: this.squadsMultisigApp.multisigAddress,
       vaultIndex: 0,
     });
+    this.logger.info(`Create Batch Transaction Index -- ${transactionIndex}`);
     return batchCreateInstruction;
   }
 
@@ -65,6 +69,9 @@ export class SquadsMultisig {
       this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    this.logger.info(
+      `Proposal Activate Transaction Index -- ${transactionIndex}`,
+    );
     return multisig.instructions.proposalActivate({
       multisigPda: this.squadsMultisigApp.multisigAddress,
       member: this.baseApp.keypair.publicKey,
@@ -78,6 +85,9 @@ export class SquadsMultisig {
       this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    this.logger.info(
+      `Proposal Approve Transaction Index -- ${transactionIndex}`,
+    );
     return multisig.instructions.proposalApprove({
       multisigPda: this.squadsMultisigApp.multisigAddress,
       member: this.baseApp.keypair.publicKey,
@@ -135,6 +145,11 @@ export class SquadsMultisig {
       })),
       addressTableLookups: compiledMessage.addressTableLookups,
     });
+    this.logger.info(`Alt Data Defined -- ${altData ? true : false}`);
+    this.logger.info(`Batch PDA -- ${batchPda.toBase58()}`);
+    this.logger.info(`Proposal PDA -- ${proposalPda.toBase58()}`);
+    this.logger.info(`Transaction PDA -- ${batchTransactionPda.toBase58()}`);
+    this.logger.info(`Transaction Index -- ${transactionIndex}`);
     return createBatchAddTransactionInstruction(
       {
         multisig: this.squadsMultisigApp.multisigAddress,
