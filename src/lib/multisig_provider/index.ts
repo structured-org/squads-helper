@@ -1,0 +1,131 @@
+import { JupiterPerps } from '@lib/jlp';
+import { SquadsMultisig } from '@lib/squads';
+import { Logger } from 'pino';
+import { web3 } from '@project-serum/anchor';
+import { Coin } from '@lib/coin';
+import { bignumber } from 'mathjs';
+import { JLP_DENOM } from '@lib/jlp';
+import { type BaseApp } from '@config/config';
+
+export class MultisigProvider {
+  private logger: Logger;
+  private jupiterPerps: JupiterPerps;
+  private squadsMultisig: SquadsMultisig;
+  private baseApp: BaseApp;
+
+  constructor(
+    logger: Logger,
+    jupiterPerps: JupiterPerps,
+    squadsMultisig: SquadsMultisig,
+    baseApp: BaseApp,
+  ) {
+    this.logger = logger;
+    this.jupiterPerps = jupiterPerps;
+    this.squadsMultisig = squadsMultisig;
+    this.baseApp = baseApp;
+  }
+
+  private async createProposalTx(
+    ix: web3.TransactionInstruction,
+  ): Promise<web3.Transaction> {
+    const lookupTableAccount = (
+      await this.baseApp.anchorProvider.connection.getAddressLookupTable(
+        new web3.PublicKey(this.jupiterPerps.app.altTable!),
+      )
+    ).value;
+    const createBatchIx = await this.squadsMultisig.createBatchIx();
+    const createProposalIx = await this.squadsMultisig.createProposalIx();
+    const addInstructionIx = await this.squadsMultisig.batchAddIxV0(
+      ix,
+      lookupTableAccount,
+    );
+    const proposalActivateIx = await this.squadsMultisig.proposalActivateIx();
+    const proposalApproveIx = await this.squadsMultisig.proposalApproveIx();
+    const tx = new web3.Transaction().add(
+      createBatchIx,
+      createProposalIx,
+      addInstructionIx,
+      proposalActivateIx,
+      proposalApproveIx,
+    );
+    return tx;
+  }
+
+  async createAddLiquidityProposalTx(
+    slippageTolerance: number,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    const addLiquidityIx = await this.jupiterPerps.relativeAddLiquidityIx(
+      this.squadsMultisig.app.vaultPda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      slippageTolerance,
+    );
+    return await this.createProposalTx(addLiquidityIx);
+  }
+
+  async createAddLiquidityAbsoluteProposalTx(
+    absoluteSlippageTolerance: number,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    const absoluteAddLiquidityIx =
+      await this.jupiterPerps.absoluteAddLiquidityIx(
+        this.squadsMultisig.app.vaultPda,
+        {
+          denom: coin.denom,
+          amount: bignumber(coin.amount),
+          precision: coin.precision,
+        },
+        absoluteSlippageTolerance,
+      );
+    return await this.createProposalTx(absoluteAddLiquidityIx);
+  }
+
+  async createRemoveLiquidityProposalTx(
+    slippageTolerance: number,
+    denomOut: string,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    if (coin.denom !== JLP_DENOM) {
+      throw `Given denom doesn't equal ${JLP_DENOM}`;
+    }
+
+    const removeLiquidityIx = await this.jupiterPerps.relativeRemoveLiquidityIx(
+      this.squadsMultisig.app.vaultPda,
+      {
+        denom: coin.denom,
+        amount: bignumber(coin.amount),
+        precision: coin.precision,
+      },
+      denomOut,
+      slippageTolerance,
+    );
+    return await this.createProposalTx(removeLiquidityIx);
+  }
+
+  async createRemoveLiquidityAbsoluteProposalTx(
+    absoluteSlippageTolerance: number,
+    denomOut: string,
+    coin: Coin,
+  ): Promise<web3.Transaction> {
+    if (coin.denom !== JLP_DENOM) {
+      throw `Given denom doesn't equal ${JLP_DENOM}`;
+    }
+
+    const absoluteRemoveLiquidityIx =
+      await this.jupiterPerps.absoluteRemoveLiquidityIx(
+        this.squadsMultisig.app.vaultPda,
+        {
+          denom: coin.denom,
+          amount: bignumber(coin.amount),
+          precision: coin.precision,
+        },
+        denomOut,
+        absoluteSlippageTolerance,
+      );
+    return await this.createProposalTx(absoluteRemoveLiquidityIx);
+  }
+}

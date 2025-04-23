@@ -1,5 +1,7 @@
 import { web3, AnchorProvider } from '@project-serum/anchor';
+import { confirmTransaction } from '@solana-developers/helpers';
 import { TransactionMessage } from '@solana/web3.js';
+import { Logger } from 'pino';
 
 export async function signAndBroadcast(
   provider: AnchorProvider,
@@ -42,4 +44,47 @@ export async function compileTransactionMessageWithAlt(
     recentBlockhash: (await provider.connection.getLatestBlockhash()).blockhash,
     instructions: instructions,
   }).compileToV0Message([alt]);
+}
+
+export async function simulateAndBroadcast(
+  provider: AnchorProvider,
+  tx: web3.Transaction,
+  ty: string,
+  logger: Logger,
+  signer: web3.Keypair,
+): Promise<web3.TransactionSignature> {
+  logger.info(`Simulating ${ty}`);
+  logger.debug(await provider.simulate(tx, [signer]));
+  logger.info(`Simulating ${ty} -- success`);
+  logger.info('Broadcasting transaction');
+  const transactionHash = await provider.connection.sendTransaction(
+    tx,
+    [signer],
+    {
+      skipPreflight: true,
+      preflightCommitment: 'confirmed',
+    },
+  );
+  logger.info(`Broadcasting transaction -- success ${transactionHash}`);
+  logger.info('Waiting for finalization');
+  let confirmTransactionAttempt = 1;
+  for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
+    try {
+      await confirmTransaction(
+        provider.connection,
+        transactionHash,
+        'finalized',
+      );
+      break;
+    } catch (e) {
+      if (confirmTransactionAttempt === 3) {
+        throw e;
+      }
+      logger.warn(
+        `Failed to await for transaction confirmation -- attempt ${confirmTransactionAttempt}/3`,
+      );
+    }
+  }
+  logger.info('Transaction finalized');
+  return transactionHash;
 }

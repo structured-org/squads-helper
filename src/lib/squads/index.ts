@@ -5,72 +5,92 @@ import {
   transactionMessageBeet,
   compileToWrappedMessageV0,
   createBatchAddTransactionInstruction,
-} from '@actions/squads/internal';
+} from '@lib/squads/internal';
 
-import { type Config } from '@config/config';
+import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
 
-export class Squads {
-  private config: Config;
+export class SquadsMultisig {
   private logger: Logger;
+  private squadsMultisigApp: SquadsMultisigApp;
+  private baseApp: BaseApp;
 
-  constructor(logger: Logger, config: Config) {
-    this.config = config;
+  constructor(
+    logger: Logger,
+    baseApp: BaseApp,
+    squadsMultisigApp: SquadsMultisigApp,
+  ) {
     this.logger = logger;
+    this.squadsMultisigApp = squadsMultisigApp;
+    this.baseApp = baseApp;
+  }
+
+  get app(): SquadsMultisigApp {
+    return this.squadsMultisigApp;
   }
 
   async createProposalIx(): Promise<web3.TransactionInstruction> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.config.anchor_provider.connection,
-      this.config.squads_multisig.multisig_address,
+      this.baseApp.anchorProvider.connection,
+      this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const proposalCreateInstruction = multisig.instructions.proposalCreate({
-      multisigPda: this.config.squads_multisig.multisig_address,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
       transactionIndex: BigInt(transactionIndex),
-      creator: this.config.keypair.publicKey,
+      creator: this.baseApp.keypair.publicKey,
       isDraft: true,
     });
+    this.logger.info(
+      `Create Proposal Transaction Index -- ${transactionIndex}`,
+    );
     return proposalCreateInstruction;
   }
 
   async createBatchIx(): Promise<web3.TransactionInstruction> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.config.anchor_provider.connection,
-      this.config.squads_multisig.multisig_address,
+      this.baseApp.anchorProvider.connection,
+      this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const batchCreateInstruction = multisig.instructions.batchCreate({
       batchIndex: BigInt(transactionIndex),
-      creator: this.config.keypair.publicKey,
-      multisigPda: this.config.squads_multisig.multisig_address,
+      creator: this.baseApp.keypair.publicKey,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
       vaultIndex: 0,
     });
+    this.logger.info(`Create Batch Transaction Index -- ${transactionIndex}`);
     return batchCreateInstruction;
   }
 
   async proposalActivateIx(): Promise<web3.TransactionInstruction> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.config.anchor_provider.connection,
-      this.config.squads_multisig.multisig_address,
+      this.baseApp.anchorProvider.connection,
+      this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    this.logger.info(
+      `Proposal Activate Transaction Index -- ${transactionIndex}`,
+    );
     return multisig.instructions.proposalActivate({
-      multisigPda: this.config.squads_multisig.multisig_address,
-      member: this.config.keypair.publicKey,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
+      member: this.baseApp.keypair.publicKey,
       transactionIndex: BigInt(transactionIndex),
     });
   }
 
   async proposalApproveIx(): Promise<web3.TransactionInstruction> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.config.anchor_provider.connection,
-      this.config.squads_multisig.multisig_address,
+      this.baseApp.anchorProvider.connection,
+      this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    this.logger.info(
+      `Proposal Approve Transaction Index -- ${transactionIndex}`,
+    );
     return multisig.instructions.proposalApprove({
-      multisigPda: this.config.squads_multisig.multisig_address,
-      member: this.config.keypair.publicKey,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
+      member: this.baseApp.keypair.publicKey,
       transactionIndex: BigInt(transactionIndex),
     });
   }
@@ -80,30 +100,30 @@ export class Squads {
     altData?: AddressLookupTableAccount,
   ): Promise<web3.TransactionInstruction> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.config.anchor_provider.connection,
-      this.config.squads_multisig.multisig_address,
+      this.baseApp.anchorProvider.connection,
+      this.squadsMultisigApp.multisigAddress,
     );
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const [proposalPda] = multisig.getProposalPda({
-      multisigPda: this.config.squads_multisig.multisig_address,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
       transactionIndex: BigInt(transactionIndex),
       programId: multisig.PROGRAM_ID,
     });
     const [batchPda] = multisig.getTransactionPda({
-      multisigPda: this.config.squads_multisig.multisig_address,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
       index: BigInt(transactionIndex),
       programId: multisig.PROGRAM_ID,
     });
     const [batchTransactionPda] = multisig.getBatchTransactionPda({
-      multisigPda: this.config.squads_multisig.multisig_address,
+      multisigPda: this.squadsMultisigApp.multisigAddress,
       batchIndex: BigInt(transactionIndex),
       transactionIndex: 1,
       programId: multisig.PROGRAM_ID,
     });
     const compiledMessage = compileToWrappedMessageV0({
-      payerKey: this.config.squads_multisig.vault_pda,
+      payerKey: this.squadsMultisigApp.vaultPda,
       recentBlockhash: (
-        await this.config.anchor_provider.connection.getLatestBlockhash()
+        await this.baseApp.anchorProvider.connection.getLatestBlockhash()
       ).blockhash,
       instructions: [instruction],
       addressLookupTableAccounts: altData ? [altData] : undefined,
@@ -125,12 +145,17 @@ export class Squads {
       })),
       addressTableLookups: compiledMessage.addressTableLookups,
     });
+    this.logger.info(`Alt Data Defined -- ${altData ? true : false}`);
+    this.logger.info(`Batch PDA -- ${batchPda.toBase58()}`);
+    this.logger.info(`Proposal PDA -- ${proposalPda.toBase58()}`);
+    this.logger.info(`Transaction PDA -- ${batchTransactionPda.toBase58()}`);
+    this.logger.info(`Transaction Index -- ${transactionIndex}`);
     return createBatchAddTransactionInstruction(
       {
-        multisig: this.config.squads_multisig.multisig_address,
-        member: this.config.keypair.publicKey,
+        multisig: this.squadsMultisigApp.multisigAddress,
+        member: this.baseApp.keypair.publicKey,
         proposal: proposalPda,
-        rentPayer: this.config.keypair.publicKey,
+        rentPayer: this.baseApp.keypair.publicKey,
         batch: batchPda,
         transaction: batchTransactionPda,
       },

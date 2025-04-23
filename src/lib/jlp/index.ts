@@ -1,12 +1,16 @@
 import { Logger } from 'pino';
-import { type Config } from '@config/config';
+import {
+  JupiterPerpsToken,
+  type BaseApp,
+  type JupiterPerpsApp,
+} from '@config/config';
 import { BigNumber, bignumber, round } from 'mathjs';
 import { Coin } from '@lib/coin';
 import { web3, Program, BN } from '@project-serum/anchor';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AccountMeta } from '@solana/web3.js';
 
-export type PoolAum = {
+type PoolAum = {
   WSOL: BigNumber;
   WETH: BigNumber;
   WBTC: BigNumber;
@@ -15,34 +19,45 @@ export type PoolAum = {
   AUM: BigNumber;
 };
 
-const JLP_PRECISION: number = 6;
+export const JLP_PRECISION: number = 6;
+export const JLP_DENOM: string = 'JLP';
 
-export class Jupiter {
+export class JupiterPerps {
   private logger: Logger;
-  private config: Config;
+  private jupiterPerpsApp: JupiterPerpsApp;
+  private baseApp: BaseApp;
 
-  constructor(logger: Logger, config: Config) {
+  constructor(
+    logger: Logger,
+    baseApp: BaseApp,
+    jupiterPerpsApp: JupiterPerpsApp,
+  ) {
     this.logger = logger;
-    this.config = config;
+    this.jupiterPerpsApp = jupiterPerpsApp;
+    this.baseApp = baseApp;
+  }
+
+  get app(): JupiterPerpsApp {
+    return this.jupiterPerpsApp;
   }
 
   async getPoolAum(): Promise<PoolAum> {
-    const program = this.config.jupiter_perps.program;
-    const programIdl = this.config.jupiter_perps.program_idl;
+    const program = this.jupiterPerpsApp.program;
+    const programIdl = this.jupiterPerpsApp.programIdl;
     const programInstance = new Program(
       programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const txConfig = { mode: { max: {} } };
     const rawTx = programInstance.methods
       .getAssetsUnderManagement2(txConfig)
       .accounts({
-        perpetuals: this.config.jupiter_perps.perpetuals,
-        pool: this.config.jupiter_perps.pool,
+        perpetuals: this.jupiterPerpsApp.perpetuals,
+        pool: this.jupiterPerpsApp.pool,
       })
       .remainingAccounts(
-        this.config.jupiter_perps.accounts.map((account) => ({
+        this.jupiterPerpsApp.accounts.map((account) => ({
           pubkey: new web3.PublicKey(account),
           isWritable: false,
           isSigner: false,
@@ -58,6 +73,10 @@ export class Jupiter {
     const aumStr = txAum[txAum.length - 1];
     const reversedBuffer = Buffer.from(aumStr, 'base64').reverse();
     const parsedInteger = BigInt('0x' + reversedBuffer.toString('hex'));
+    /**
+     * We take precision everywhere here for 8 because Jupiter Pool gives back
+     * prices devided by 10^8. Result price is the USD price (with precision 6)
+     */
     const wsolPrice = bignumber(priceList[0]).div(Math.pow(10, 8));
     const wethPrice = bignumber(priceList[1]).div(Math.pow(10, 8));
     const wbtcPrice = bignumber(priceList[2]).div(Math.pow(10, 8));
@@ -82,10 +101,8 @@ export class Jupiter {
 
   async getLpTokenTotalSupply(): Promise<BigNumber> {
     const jlpTotalSupply = (
-      await this.config.anchor_provider.connection.getTokenSupply(
-        new web3.PublicKey(
-          this.config.jupiter_perps.lp_token_mint.token_address,
-        ),
+      await this.baseApp.anchorProvider.connection.getTokenSupply(
+        new web3.PublicKey(this.jupiterPerpsApp.lpTokenMint.tokenAddress),
       )
     ).value.amount;
     this.logger.info(`JLP total supply -- ${jlpTotalSupply}`);
@@ -137,22 +154,21 @@ export class Jupiter {
     return bignumber(tokenAmountOut);
   }
 
-  async removeLiquidityIx(
+  private async removeLiquidityIx(
     provider: web3.PublicKey,
     lpIn: Coin,
-    denomOut: string,
-    slippageTolerance: number,
+    outputCoin: JupiterPerpsToken,
+    minAmountTokenOut: BigNumber,
   ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.config.jupiter_perps.coins.get(denomOut)!;
-    const program = this.config.jupiter_perps.program;
+    const program = this.jupiterPerpsApp.program;
     const programInstance = new Program(
-      this.config.jupiter_perps.program_idl,
+      this.jupiterPerpsApp.programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
-        this.config.jupiter_perps.lp_token_mint.token_address,
+        this.jupiterPerpsApp.lpTokenMint.tokenAddress,
         provider,
         true,
       ).toBase58(),
@@ -164,22 +180,13 @@ export class Jupiter {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] =
-      this.config.jupiter_perps.accounts.map((account) => ({
+    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
+      (account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }));
-    const amountTokenOut = await this.getTokenAmountOut(
-      lpIn,
-      denomOut,
-      slippageTolerance,
+      }),
     );
-    const minAmountTokenOut = amountTokenOut
-      .mul(Math.pow(10, outputCoin.decimals))
-      .round();
-    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(`minAmountOut -- ${minAmountTokenOut.toString()}`);
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
       minAmountOut: new BN(minAmountTokenOut.toString()),
@@ -208,17 +215,59 @@ export class Jupiter {
     return await transaction.instruction();
   }
 
-  async provideLiquidityIx(
+  async relativeRemoveLiquidityIx(
     provider: web3.PublicKey,
-    coin: Coin,
+    lpIn: Coin,
+    denomOut: string,
     slippageTolerance: number,
   ): Promise<web3.TransactionInstruction> {
-    const inputCoin = this.config.jupiter_perps.coins.get(coin.denom)!;
-    const program = this.config.jupiter_perps.program;
+    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
+    const amountTokenOut = await this.getTokenAmountOut(
+      lpIn,
+      denomOut,
+      slippageTolerance,
+    );
+    const minAmountTokenOut = amountTokenOut
+      .mul(Math.pow(10, outputCoin.decimals))
+      .round();
+    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(`minAmountOut -- ${minAmountTokenOut.toString()}`);
+    return await this.removeLiquidityIx(
+      provider,
+      lpIn,
+      outputCoin,
+      minAmountTokenOut,
+    );
+  }
+
+  async absoluteRemoveLiquidityIx(
+    provider: web3.PublicKey,
+    lpIn: Coin,
+    denomOut: string,
+    absoluteSlippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
+    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(`minAmountOut -- ${absoluteSlippageTolerance.toString()}`);
+    return await this.removeLiquidityIx(
+      provider,
+      lpIn,
+      outputCoin,
+      bignumber(absoluteSlippageTolerance),
+    );
+  }
+
+  async addLiquidityIx(
+    provider: web3.PublicKey,
+    coin: Coin,
+    minLpTokenAmount: BigNumber,
+  ): Promise<web3.TransactionInstruction> {
+    const inputCoin = this.jupiterPerpsApp.coins.get(coin.denom)!;
+    const program = this.jupiterPerpsApp.program;
     const programInstance = new Program(
-      this.config.jupiter_perps.program_idl,
+      this.jupiterPerpsApp.programIdl,
       program,
-      this.config.anchor_provider,
+      this.baseApp.anchorProvider,
     );
     const fundingAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
@@ -229,26 +278,18 @@ export class Jupiter {
     );
     const lpTokenAccount = new web3.PublicKey(
       getAssociatedTokenAddressSync(
-        this.config.jupiter_perps.lp_token_mint.token_address,
+        this.jupiterPerpsApp.lpTokenMint.tokenAddress,
         provider,
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] =
-      this.config.jupiter_perps.accounts.map((account) => ({
+    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
+      (account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }));
-    const minLpTokenAmountValue = await this.getLpTokenAmount(
-      coin,
-      slippageTolerance,
+      }),
     );
-    const minLpTokenAmount = minLpTokenAmountValue
-      .mul(Math.pow(10, JLP_PRECISION))
-      .round();
-    this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
-    this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     const params = {
       tokenAmountIn: new BN(coin.amount.toString()),
       minLpAmountOut: new BN(minLpTokenAmount.toString()),
@@ -276,5 +317,38 @@ export class Jupiter {
       })
       .remainingAccounts(remainingAccounts);
     return await transaction.instruction();
+  }
+
+  async relativeAddLiquidityIx(
+    provider: web3.PublicKey,
+    coin: Coin,
+    slippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    const minLpTokenAmountValue = await this.getLpTokenAmount(
+      coin,
+      slippageTolerance,
+    );
+    const minLpTokenAmount = minLpTokenAmountValue
+      .mul(Math.pow(10, JLP_PRECISION))
+      .round();
+    this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
+    this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
+    return await this.addLiquidityIx(provider, coin, minLpTokenAmount);
+  }
+
+  async absoluteAddLiquidityIx(
+    provider: web3.PublicKey,
+    lpIn: Coin,
+    absoluteSlippageTolerance: number,
+  ): Promise<web3.TransactionInstruction> {
+    this.logger.info(`tokenAmountIn -- ${lpIn.amount.toString()}`);
+    this.logger.info(
+      `minLpTokenAmount -- ${absoluteSlippageTolerance.toString()}`,
+    );
+    return await this.addLiquidityIx(
+      provider,
+      lpIn,
+      bignumber(absoluteSlippageTolerance),
+    );
   }
 }
