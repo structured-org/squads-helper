@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { registerAddLiquidityCommand } from './commands/add_liquidity';
 import { registerRemoveLiquidityCommand } from './commands/remove_liquidity';
+import { registerAbsoluteAddLiquidityCommand } from './commands/absolte_add_liquidity';
 
 const program = new Command();
 
@@ -11,5 +12,6 @@ program
 
 registerAddLiquidityCommand(program);
 registerRemoveLiquidityCommand(program);
+registerAbsoluteAddLiquidityCommand(program);
 
 program.parse();
