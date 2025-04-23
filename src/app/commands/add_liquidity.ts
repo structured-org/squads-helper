@@ -1,36 +1,18 @@
 import { Command } from 'commander';
-
-import {
-  getBaseApp,
-  parseConfig,
-  getJupiterPerpsAppFromConfig,
-  getSquadsMultisigAppFromConfig,
-} from '@config/config';
-import { SquadsMultisig } from '@lib/squads';
-import { Alt } from '@lib/alt';
-import { web3 } from '@project-serum/anchor';
-import { getLogger } from '@lib/logger';
 import { JupiterPerps } from '@lib/jlp';
 import { simulateAndBroadcast } from '@lib/helpers';
 import { MultisigProvider } from '@lib/multisig_provider';
 import { bignumber } from 'mathjs';
+import { BaseApp } from '@config/config';
+import { Logger } from 'pino';
 
-const logger = getLogger();
-const config = parseConfig(process.env.CONFIG_PATH);
-const baseApp = getBaseApp();
-const jupiterPerpsApp = getJupiterPerpsAppFromConfig(config);
-const squadsMultisigApp = getSquadsMultisigAppFromConfig(config);
-const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
-const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
-const alt = new Alt(logger, baseApp);
-const multisigProvider = new MultisigProvider(
-  logger,
-  jupiterPerps,
-  squadsMultisig,
-  baseApp,
-);
-
-export function registerAddLiquidityCommand(program: Command) {
+export function registerAddLiquidityCommand(
+  program: Command,
+  logger: Logger,
+  baseApp: BaseApp,
+  jupiterPerps: JupiterPerps,
+  multisigProvider: MultisigProvider,
+) {
   program
     .command('add-liquidity')
     .description(
@@ -56,36 +38,6 @@ export function registerAddLiquidityCommand(program: Command) {
         process.exit(-1);
       }
 
-      // We need to have ALT for further addLiquidity2 instruction contraction
-      if (jupiterPerps.app.altTable === undefined) {
-        const createTable = await alt.createTable(jupiterPerps.app.accounts);
-        jupiterPerps.app.altTable = new web3.PublicKey(
-          createTable.lookupTableAddress.toBase58(),
-        );
-        await simulateAndBroadcast(
-          baseApp.anchorProvider,
-          createTable.tx,
-          'table creation',
-          logger,
-          baseApp.keypair,
-        );
-      } else {
-        logger.info(`ALT Table Defined -- ${jupiterPerps.app.altTable!}`);
-        const lookupTableAccount = (
-          await baseApp.anchorProvider.connection.getAddressLookupTable(
-            new web3.PublicKey(jupiterPerps.app.altTable!),
-          )
-        ).value;
-        for (
-          let i = 1;
-          i <= lookupTableAccount.state.addresses.length;
-          i += 1
-        ) {
-          logger.info(
-            `ALT Account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupTableAccount.state.addresses[i - 1]}`,
-          );
-        }
-      }
       logger.info(`Provide Liquidity Amount -- ${options.amount}`);
       logger.info(
         `Provide Liquidity Slippage Tolerance -- ${options.slippageTolerance}`,
