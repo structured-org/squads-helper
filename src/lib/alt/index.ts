@@ -43,7 +43,7 @@ export class Alt {
     this.logger.info(`ALT address -- ${lookupTableAddress}`);
     for (let i = 1; i <= altAccounts.length; i += 1) {
       this.logger.info(
-        `ALT account -- ${i}/${altAccounts.length} ${altAccounts[i - 1]}`,
+        `ALT account ${i}/${altAccounts.length} -- ${altAccounts[i - 1]}`,
       );
     }
 

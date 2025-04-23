@@ -1,19 +1,32 @@
-import { getStateFromConfig } from '@config/config';
-import { Squads } from '@lib/squads';
+import {
+  getBaseApp,
+  parseConfig,
+  getJupiterPerpsAppFromConfig,
+  getSquadsMultisigAppFromConfig,
+} from '@config/config';
+import { SquadsMultisig } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { getLogger } from '@lib/logger';
 import { bignumber } from 'mathjs';
-import { JLP_DENOM, JLP_PRECISION, Jupiter } from '@lib/jlp';
+import { JLP_DENOM, JLP_PRECISION, JupiterPerps } from '@lib/jlp';
 import { Alt } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
 import { simulateAndBroadcast } from '@lib/helpers';
 
 const logger = getLogger();
-const state = getStateFromConfig(process.env.CONFIG_PATH);
-const jlp = new Jupiter(logger, state);
-const squads = new Squads(logger, state);
-const alt = new Alt(logger, state);
-const multisigProvider = new MultisigProvider(logger, state, jlp, squads, alt);
+const config = parseConfig(process.env.CONFIG_PATH);
+const baseApp = getBaseApp();
+const jupiterPerpsApp = getJupiterPerpsAppFromConfig(config);
+const squadsMultisigApp = getSquadsMultisigAppFromConfig(config);
+const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
+const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
+const alt = new Alt(logger, baseApp);
+const multisigProvider = new MultisigProvider(
+  logger,
+  jupiterPerps,
+  squadsMultisig,
+  baseApp,
+);
 
 async function main() {
   if (process.env.TOKEN_AMOUNT === undefined) {
@@ -42,32 +55,46 @@ async function main() {
     logger.error(`Given coin should has JLP denom -- ${denom}`);
     process.exit(-1);
   }
-  if (state.jupiter_perps.coins.get(process.env.DENOM_OUT) === undefined) {
+  if (jupiterPerps.app.coins.get(process.env.DENOM_OUT) === undefined) {
     logger.error(
       `Given DENOM_OUT doesn't exist for the given config -- ${process.env.DENOM_OUT}`,
     );
     process.exit(-1);
   }
+  if (Number(process.env.ABSOLUTE_SLIPPAGE_TOLERANCE) % 1 !== 0) {
+    logger.error(`ABSOLUTE_SLIPPAGE_TOLERANCE is supposed to be an integer`);
+    process.exit(-1);
+  }
 
   // We need to have ALT for further addLiquidity2 instruction contraction
-  if (state.jupiter_perps.alt_table === undefined) {
-    const createTable = await alt.createTable();
-    state.jupiter_perps.alt_table = new web3.PublicKey(
+  if (jupiterPerps.app.altTable === undefined) {
+    const createTable = await alt.createTable(jupiterPerps.app.accounts);
+    jupiterPerps.app.altTable = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
     await simulateAndBroadcast(
-      state.anchor_provider,
+      baseApp.anchorProvider,
       createTable.tx,
       'table creation',
       logger,
-      state.keypair,
+      baseApp.keypair,
     );
   } else {
-    logger.info(`ALT table defined -- ${state.jupiter_perps.alt_table!}`);
+    logger.info(`ALT table defined -- ${jupiterPerps.app.altTable!}`);
+    const lookupTableAccount = (
+      await baseApp.anchorProvider.connection.getAddressLookupTable(
+        new web3.PublicKey(jupiterPerps.app.altTable!),
+      )
+    ).value;
+    for (let i = 1; i <= lookupTableAccount.state.addresses.length; i += 1) {
+      logger.info(
+        `ALT account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupTableAccount.state.addresses[i - 1]}`,
+      );
+    }
   }
 
   logger.info(
-    `Absolute remove liquidity -- (DENOM_OUT=${process.env.DENOM_OUT} TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, ABSOLUTE_SLIPPAGE_TOLERANCE=${process.env.ABSOLUTE_SLIPPAGE_TOLERANCE})`,
+    `Absolute remove liquidity -- (DENOM_OUT=${process.env.DENOM_OUT}, TOKEN_AMOUNT=${process.env.TOKEN_AMOUNT}, ABSOLUTE_SLIPPAGE_TOLERANCE=${process.env.ABSOLUTE_SLIPPAGE_TOLERANCE})`,
   );
   const tx = await multisigProvider.createRemoveLiquidityAbsoluteProposalTx(
     Number(process.env.ABSOLUTE_SLIPPAGE_TOLERANCE),
@@ -79,11 +106,11 @@ async function main() {
     },
   );
   await simulateAndBroadcast(
-    state.anchor_provider,
+    baseApp.anchorProvider,
     tx,
     'absolute liquidity removal propopsal',
     logger,
-    state.keypair,
+    baseApp.keypair,
   );
 }
 
