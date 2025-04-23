@@ -114,12 +114,12 @@ export function registerAbsoluteRemoveLiquidityCommand(program: Command) {
           precision: JLP_PRECISION,
         },
       );
-      //   await simulateAndBroadcast(
-      //     baseApp.anchorProvider,
-      //     tx,
-      //     'absolute liquidity removal propopsal',
-      //     logger,
-      //     baseApp.keypair,
-      //   );
+      await simulateAndBroadcast(
+        baseApp.anchorProvider,
+        tx,
+        'absolute liquidity removal propopsal',
+        logger,
+        baseApp.keypair,
+      );
     });
 }
