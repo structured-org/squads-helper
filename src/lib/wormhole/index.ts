@@ -51,11 +51,7 @@ export class WormholeEthereum {
     const wormholeToken: WormholeToken = this.wormholeApp.coins.get(
       token.denom,
     );
-    const relayerFee = await this.automaticTokenBridge.getRelayerFee(
-      'Ethereum',
-      Wormhole.tokenId('Solana', wormholeToken.token_address.toBase58())
-        .address,
-    );
+    const relayerFee = await this.getRelayerFee(wormholeToken);
     this.logger.info(`Relayer Fee -- ${relayerFee}`);
     this.logger.info(
       `Token Bridge Relayer -- ${wormholeChain.tokenBridgeRelayer}`,
