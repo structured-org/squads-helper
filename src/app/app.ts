@@ -78,13 +78,8 @@ registerAbsoluteRemoveLiquidityCommand(
 );
 
 async function main() {
-  await createJupiterPerpsAltTableIfNotExist(
-    alt,
-    baseApp,
-    jupiterPerpsApp,
-    logger,
-  );
-  await createWormholeAltTablesIfNotExist(alt, baseApp, wormhole, logger);
+  await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerpsApp);
+  await createWormholeAltTablesIfNotExist(alt, wormholeApp);
 
   program.parse();
 }
