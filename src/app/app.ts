@@ -44,7 +44,7 @@ const multisigProvider = new MultisigProvider(
 const program = new Command();
 
 program
-  .name('squads-jlp-helper')
+  .name('squads-helper')
   .description('CLI to operate a SQUADS multisig with different messages')
   .version('1.1.0');
 
