@@ -8,6 +8,16 @@ type ConfigFile = {
     multisig_address: string;
     vault_pda: string;
   };
+  wormhole: {
+    chains: Array<{
+      name: string;
+      alt_table?: string;
+      token_bridge_relayer: string;
+      token_bridge: string;
+      core_bridge: string;
+      accounts: Array<string>;
+    }>;
+  };
   jupiter_perps: {
     program_idl: string;
     program: string;
@@ -41,6 +51,29 @@ type ConfigFile = {
   };
 };
 
+export type BaseApp = {
+  anchorProvider: AnchorProvider;
+  keypair: web3.Keypair;
+};
+
+export type SquadsMultisigApp = {
+  programIdl: any;
+  multisigAddress: web3.PublicKey;
+  vaultPda: web3.PublicKey;
+};
+
+export type WormholeChain = {
+  altTable?: web3.PublicKey;
+  tokenBridgeRelayer: web3.PublicKey;
+  tokenBridge: web3.PublicKey;
+  coreBridge: web3.PublicKey;
+  accounts: Array<web3.PublicKey>;
+};
+
+export type WormholeApp = {
+  chains: Map<string, WormholeChain>;
+};
+
 type JupiterPerpsInputAccounts = {
   transfer_authority: web3.PublicKey;
   perpetuals: web3.PublicKey;
@@ -59,17 +92,6 @@ export type JupiterPerpsToken = {
   decimals: number;
   token_address: web3.PublicKey;
   input_accounts: JupiterPerpsInputAccounts;
-};
-
-export type BaseApp = {
-  anchorProvider: AnchorProvider;
-  keypair: web3.Keypair;
-};
-
-export type SquadsMultisigApp = {
-  programIdl: any;
-  multisigAddress: web3.PublicKey;
-  vaultPda: web3.PublicKey;
 };
 
 export type JupiterPerpsApp = {
@@ -125,6 +147,27 @@ export function getSquadsMultisigAppFromConfig(
       config.squads_multisig.multisig_address,
     ),
     vaultPda: new web3.PublicKey(config.squads_multisig.vault_pda),
+  };
+}
+
+export function getWormholeAppfromConfig(config: ConfigFile): WormholeApp {
+  return {
+    chains: new Map(
+      config.wormhole.chains.map((chain) => {
+        const chainConfiguraion: WormholeChain = {
+          altTable: chain.alt_table
+            ? new web3.PublicKey(chain.alt_table)
+            : undefined,
+          tokenBridgeRelayer: new web3.PublicKey(chain.token_bridge_relayer),
+          tokenBridge: new web3.PublicKey(chain.token_bridge),
+          coreBridge: new web3.PublicKey(chain.core_bridge),
+          accounts: chain.accounts.map(
+            (account) => new web3.PublicKey(account),
+          ),
+        };
+        return [chain.name, chainConfiguraion];
+      }),
+    ),
   };
 }
 
