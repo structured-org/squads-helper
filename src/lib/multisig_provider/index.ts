@@ -136,14 +136,12 @@ export class MultisigProvider {
   async wormholeTransferEthereum(
     token: Coin,
     receiver: string,
-    feeTolerance?: number,
   ): Promise<web3.Transaction> {
     const transferWrappedIx =
       await this.wormholeEthereum.transferTokensEthereum(
         this.squadsMultisig.app.vaultPda,
         receiver,
         token,
-        feeTolerance,
       );
 
     return await this.createProposalTx(transferWrappedIx);

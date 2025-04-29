@@ -45,28 +45,17 @@ export class WormholeEthereum {
     sender: web3.PublicKey,
     recipient: string,
     token: Coin,
-    feeTolerance?: number,
   ): Promise<web3.TransactionInstruction> {
-    if (this.wormholeApp.coins.has(token.denom) === false) {
-      this.logger.error(`${token.denom} In Wormhole Config Doesn't Exist`);
-      process.exit(-1);
-    }
     const wormholeChain: WormholeChain =
       this.wormholeApp.chains.get('Ethereum');
     const wormholeToken: WormholeToken = this.wormholeApp.coins.get(
       token.denom,
     );
-
     const relayerFee = await this.automaticTokenBridge.getRelayerFee(
       'Ethereum',
       Wormhole.tokenId('Solana', wormholeToken.token_address.toBase58())
         .address,
     );
-    if (relayerFee >= feeTolerance) {
-      this.logger.error(`${relayerFee} >= feeTolerance`);
-      process.exit(-1);
-    }
-
     this.logger.info(`Relayer Fee -- ${relayerFee}`);
     this.logger.info(
       `Token Bridge Relayer -- ${wormholeChain.tokenBridgeRelayer}`,
@@ -79,7 +68,6 @@ export class WormholeEthereum {
     this.logger.info(
       `Actual Amount -- ${BigInt(token.amount.toString()) - relayerFee}`,
     );
-
     return await createTransferWrappedTokensWithRelayInstructionOffCurve(
       this.baseApp.anchorProvider.connection,
       new web3.PublicKey(wormholeChain.tokenBridgeRelayer),
@@ -94,6 +82,14 @@ export class WormholeEthereum {
         .toUint8Array(),
       'Ethereum',
       0,
+    );
+  }
+
+  async getRelayerFee(wormholeToken: WormholeToken): Promise<bigint> {
+    return await this.automaticTokenBridge.getRelayerFee(
+      'Ethereum',
+      Wormhole.tokenId('Solana', wormholeToken.token_address.toBase58())
+        .address,
     );
   }
 }
