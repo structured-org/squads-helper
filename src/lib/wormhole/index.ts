@@ -1,4 +1,4 @@
-import { BaseApp, WormholeApp } from '@config/config';
+import type { BaseApp, WormholeApp } from '@config/config';
 import { Logger } from 'pino';
 
 export class Wormhole {

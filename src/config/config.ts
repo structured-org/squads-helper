@@ -9,6 +9,11 @@ type ConfigFile = {
     vault_pda: string;
   };
   wormhole: {
+    coins: Array<{
+      coin: string;
+      decimals: number;
+      token_address: string;
+    }>;
     chains: Array<{
       name: string;
       alt_table?: string;
@@ -70,7 +75,13 @@ export type WormholeChain = {
   accounts: Array<web3.PublicKey>;
 };
 
+export type WormholeToken = {
+  token_address: web3.PublicKey;
+  decimals: number;
+};
+
 export type WormholeApp = {
+  coins: Map<string, WormholeToken>;
   chains: Map<string, WormholeChain>;
 };
 
@@ -152,6 +163,15 @@ export function getSquadsMultisigAppFromConfig(
 
 export function getWormholeAppfromConfig(config: ConfigFile): WormholeApp {
   return {
+    coins: new Map(
+      config.wormhole.coins.map((coin) => [
+        coin.coin,
+        {
+          token_address: new web3.PublicKey(coin.token_address),
+          decimals: coin.decimals,
+        },
+      ]),
+    ),
     chains: new Map(
       config.wormhole.chains.map((chain) => {
         const chainConfiguraion: WormholeChain = {
