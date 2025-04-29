@@ -14,13 +14,14 @@ import {
 import { SquadsMultisig } from '@lib/squads';
 import { getLogger } from '@lib/logger';
 import { JupiterPerps } from '@lib/jlp';
-import { Wormhole } from '@lib/wormhole';
+import { WormholeEthereum } from '@lib/wormhole';
 import {
   Alt,
   createJupiterPerpsAltTableIfNotExist,
   createWormholeAltTablesIfNotExist,
 } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
+import { bignumber } from 'mathjs';
 
 const logger = getLogger();
 const config = parseConfig(process.env.CONFIG_PATH);
@@ -33,7 +34,7 @@ const wormholeApp = getWormholeAppfromConfig(config);
 const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
 const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
 const alt = new Alt(logger, baseApp);
-const wormhole = new Wormhole(logger, baseApp, wormholeApp);
+const wormholeEthereum = new WormholeEthereum(logger, baseApp, wormholeApp);
 const multisigProvider = new MultisigProvider(
   logger,
   jupiterPerps,
