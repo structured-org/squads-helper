@@ -21,6 +21,7 @@ import {
   createWormholeAltTablesIfNotExist,
 } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
+import { registerWormholeEthereumCommand } from './commands/wormhole_ethereum';
 
 const logger = getLogger();
 const config = parseConfig(process.env.CONFIG_PATH);
@@ -39,6 +40,7 @@ const multisigProvider = new MultisigProvider(
   jupiterPerps,
   squadsMultisig,
   baseApp,
+  wormholeEthereum,
 );
 
 const program = new Command();
@@ -74,6 +76,13 @@ registerAbsoluteRemoveLiquidityCommand(
   logger,
   baseApp,
   jupiterPerps,
+  multisigProvider,
+);
+registerWormholeEthereumCommand(
+  program,
+  logger,
+  baseApp,
+  wormholeEthereum,
   multisigProvider,
 );
 

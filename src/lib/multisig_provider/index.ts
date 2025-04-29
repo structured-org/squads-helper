@@ -6,23 +6,27 @@ import { Coin } from '@lib/coin';
 import { bignumber } from 'mathjs';
 import { JLP_DENOM } from '@lib/jlp';
 import { type BaseApp } from '@config/config';
+import { WormholeEthereum } from '@lib/wormhole';
 
 export class MultisigProvider {
   private logger: Logger;
   private jupiterPerps: JupiterPerps;
   private squadsMultisig: SquadsMultisig;
   private baseApp: BaseApp;
+  private wormholeEthereum: WormholeEthereum;
 
   constructor(
     logger: Logger,
     jupiterPerps: JupiterPerps,
     squadsMultisig: SquadsMultisig,
     baseApp: BaseApp,
+    wormholeEthereum: WormholeEthereum,
   ) {
     this.logger = logger;
     this.jupiterPerps = jupiterPerps;
     this.squadsMultisig = squadsMultisig;
     this.baseApp = baseApp;
+    this.wormholeEthereum = wormholeEthereum;
   }
 
   private async createProposalTx(
@@ -127,5 +131,21 @@ export class MultisigProvider {
         absoluteSlippageTolerance,
       );
     return await this.createProposalTx(absoluteRemoveLiquidityIx);
+  }
+
+  async wormholeTransferEthereum(
+    token: Coin,
+    receiver: string,
+    feeTolerance?: number,
+  ): Promise<web3.Transaction> {
+    const transferWrappedIx =
+      await this.wormholeEthereum.transferTokensEthereum(
+        this.squadsMultisig.app.vaultPda,
+        receiver,
+        token,
+        feeTolerance,
+      );
+
+    return await this.createProposalTx(transferWrappedIx);
   }
 }

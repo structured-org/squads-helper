@@ -49,7 +49,7 @@ export class WormholeEthereum {
   ): Promise<web3.TransactionInstruction> {
     if (this.wormholeApp.coins.has(token.denom) === false) {
       this.logger.error(`${token.denom} In Wormhole Config Doesn't Exist`);
-      return;
+      process.exit(-1);
     }
     const wormholeChain: WormholeChain =
       this.wormholeApp.chains.get('Ethereum');
@@ -64,7 +64,7 @@ export class WormholeEthereum {
     );
     if (relayerFee >= feeTolerance) {
       this.logger.error(`${relayerFee} >= feeTolerance`);
-      return;
+      process.exit(-1);
     }
 
     this.logger.info(`Relayer Fee -- ${relayerFee}`);
