@@ -21,7 +21,6 @@ import {
   createWormholeAltTablesIfNotExist,
 } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
-import { bignumber } from 'mathjs';
 
 const logger = getLogger();
 const config = parseConfig(process.env.CONFIG_PATH);
