@@ -1,4 +1,4 @@
-# SQUADS JLP Helper
+# SQUADS Helper
 
 This script automatically posts proposals into multisig with a different payload
 

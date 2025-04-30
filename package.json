@@ -1,7 +1,7 @@
 {
   "name": "maxbtc_sol",
   "version": "1.0.0",
-  "description": "Solana JLP liquidity query application",
+  "description": "SQUADS multisig helper",
   "license": "MIT",
   "scripts": {
     "start": "node -r ts-node/register --env-file=./.env src/app/app.ts",
