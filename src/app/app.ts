@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { registerWormholeEthereumCommand } from './commands/wormhole_ethereum';
 import { registerAddLiquidityCommand } from './commands/add_liquidity';
 import { registerRemoveLiquidityCommand } from './commands/remove_liquidity';
 import { registerAbsoluteAddLiquidityCommand } from './commands/absolte_add_liquidity';
@@ -21,7 +22,6 @@ import {
   createWormholeAltTablesIfNotExist,
 } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
-import { registerWormholeEthereumCommand } from './commands/wormhole_ethereum';
 
 const logger = getLogger();
 const config = parseConfig(process.env.CONFIG_PATH);
