@@ -52,7 +52,6 @@ export class WormholeEthereum {
       token.denom,
     );
     const relayerFee = await this.getRelayerFee(wormholeToken);
-    this.logger.info(`Relayer Fee -- ${relayerFee}`);
     this.logger.info(
       `Token Bridge Relayer -- ${wormholeChain.tokenBridgeRelayer}`,
     );
@@ -61,6 +60,7 @@ export class WormholeEthereum {
     this.logger.info(`From -- ${sender}`);
     this.logger.info(`To -- ${recipient}`);
     this.logger.info(`Initial Amount -- ${token.amount.toString()}`);
+    this.logger.info(`Relayer Fee -- ${relayerFee}`);
     this.logger.info(
       `Actual Amount -- ${BigInt(token.amount.toString()) - relayerFee}`,
     );
