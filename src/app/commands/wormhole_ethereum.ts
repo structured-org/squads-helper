@@ -20,7 +20,7 @@ export function registerWormholeEthereumCommand(
     )
     .requiredOption(
       '--recipient <recipient>',
-      'Hex address, starts with 0x (e.g. --recepiet 0xABCDEF...)',
+      'Hex address, starts with 0x (e.g. --recipient 0xABCDEF...)',
     )
     .requiredOption(
       '--amount <amount>',
@@ -28,18 +28,23 @@ export function registerWormholeEthereumCommand(
     )
     .option(
       '--fee-tolerance <fee_tolerance>',
-      'Fee tolerance for transfering tokens, denomination is taken from <amount> option (e.g. --fee-tolerance 123)',
+      'Fee tolerance for transferring tokens, denomination is taken from <amount> option (e.g. --fee-tolerance 123)',
     )
     .action(async (options) => {
       logger.debug('Reading the config');
-      const [, amount, denom] = options.amount.match(
-        /^(\d+(?:\.\d+)?)([A-Z]+)$/,
-      );
+      const regexResult = options.amount.match(/^(\d+)([A-Z]+)$/);
+      if (regexResult === null) {
+        logger.error(
+          `--amount: Specify the integer format <amount><denom> (e.g. 123USDC). Precision will be taken from the config later during execution. Your input: ${options.amount}`,
+        );
+        process.exit(-1);
+      }
+      const [, amount, assetDenom] = regexResult;
 
-      const wormholeToken = wormholeEthereum.app.coins.get(denom);
+      const wormholeToken = wormholeEthereum.app.coins.get(assetDenom);
       if (wormholeToken === undefined) {
         logger.error(
-          `--amount: No such a coin described in the config -- ${denom}`,
+          `--amount: No such a coin described in the config -- ${assetDenom}`,
         );
         process.exit(-1);
       }
@@ -47,7 +52,7 @@ export function registerWormholeEthereumCommand(
       const relayerFee = await wormholeEthereum.getRelayerFee(wormholeToken);
       if (
         options.feeTolerance !== undefined &&
-        relayerFee >= options.feeTolerance
+        relayerFee >= BigInt(options.feeTolerance)
       ) {
         logger.error(
           `--fee-tolerance: Relayer Fee >= feeTolerance -- ${relayerFee}`,
@@ -60,24 +65,24 @@ export function registerWormholeEthereumCommand(
       }
       if (options.feeTolerance !== undefined) {
         logger.info(
-          `Wormhole Relayer Fee Tolerance -- ${options.feeTolerance}${denom}`,
+          `Wormhole Relayer Fee Tolerance -- ${options.feeTolerance}${assetDenom}`,
         );
       }
 
       const tx = await multisigProvider.wormholeTransferEthereum(
         {
-          denom: denom,
+          denom: assetDenom,
           amount: bignumber(amount),
           precision: wormholeToken.decimals,
         },
-        options.recepient,
+        options.recipient,
       );
-      await simulateAndBroadcast(
-        baseApp.anchorProvider,
-        tx,
-        'Wormhole Transfer',
-        logger,
-        baseApp.keypair,
-      );
+      // await simulateAndBroadcast(
+      //   baseApp.anchorProvider,
+      //   tx,
+      //   'Wormhole Transfer',
+      //   logger,
+      //   baseApp.keypair,
+      // );
     });
 }

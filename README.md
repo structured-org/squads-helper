@@ -109,10 +109,10 @@ in any other token then all you need is to add a new item inside `coins` array, 
 Example of how to run the script:
 
 ```bash
-yarn run wormhole-ethereum --amount 123WBTC --recepient 0xABCDEF... --fee-tolerance 100
+yarn run wormhole-ethereum --amount 123WBTC --recipient 0xABCDEF... --fee-tolerance 100
 ```
 
-Notice that `--amount` option is case sensetive and should be used with capital letters. `--recepient` is a hex address in ethereum network who will receive these tokens. `--fee-tolerance` is a maximum fee tolerance for token bridge relayer. Please note that this option is only make sence in time when we create a proposal, not executing it.
+Notice that `--amount` option is case sensitive and should be used with capital letters. `--recipient` is a hex address in ethereum network who will receive these tokens. `--fee-tolerance` is a maximum fee tolerance for token bridge relayer. Please note that this option is only make sence in time when we create a proposal, not executing it.
 
 ## Add Liquidity
 
