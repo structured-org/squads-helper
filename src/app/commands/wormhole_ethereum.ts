@@ -19,7 +19,7 @@ export function registerWormholeEthereumCommand(
       'Creates a proposal with Wormhole execution message transferWrappedWithPayload',
     )
     .requiredOption(
-      '--recepient <recepient>',
+      '--recipient <recipient>',
       'Hex address, starts with 0x (e.g. --recepiet 0xABCDEF...)',
     )
     .requiredOption(
