@@ -77,12 +77,12 @@ export function registerWormholeEthereumCommand(
         },
         options.recipient,
       );
-      // await simulateAndBroadcast(
-      //   baseApp.anchorProvider,
-      //   tx,
-      //   'Wormhole Transfer',
-      //   logger,
-      //   baseApp.keypair,
-      // );
+      await simulateAndBroadcast(
+        baseApp.anchorProvider,
+        tx,
+        'Wormhole Transfer',
+        logger,
+        baseApp.keypair,
+      );
     });
 }
