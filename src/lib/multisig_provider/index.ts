@@ -6,31 +6,36 @@ import { Coin } from '@lib/coin';
 import { bignumber } from 'mathjs';
 import { JLP_DENOM } from '@lib/jlp';
 import { type BaseApp } from '@config/config';
+import { WormholeEthereum } from '@lib/wormhole';
 
 export class MultisigProvider {
   private logger: Logger;
   private jupiterPerps: JupiterPerps;
   private squadsMultisig: SquadsMultisig;
   private baseApp: BaseApp;
+  private wormholeEthereum: WormholeEthereum;
 
   constructor(
     logger: Logger,
     jupiterPerps: JupiterPerps,
     squadsMultisig: SquadsMultisig,
     baseApp: BaseApp,
+    wormholeEthereum: WormholeEthereum,
   ) {
     this.logger = logger;
     this.jupiterPerps = jupiterPerps;
     this.squadsMultisig = squadsMultisig;
     this.baseApp = baseApp;
+    this.wormholeEthereum = wormholeEthereum;
   }
 
   private async createProposalTx(
     ix: web3.TransactionInstruction,
+    alt: web3.PublicKey,
   ): Promise<web3.Transaction> {
     const lookupTableAccount = (
       await this.baseApp.anchorProvider.connection.getAddressLookupTable(
-        new web3.PublicKey(this.jupiterPerps.app.altTable!),
+        new web3.PublicKey(alt),
       )
     ).value;
     const createBatchIx = await this.squadsMultisig.createBatchIx();
@@ -64,7 +69,10 @@ export class MultisigProvider {
       },
       slippageTolerance,
     );
-    return await this.createProposalTx(addLiquidityIx);
+    return await this.createProposalTx(
+      addLiquidityIx,
+      this.jupiterPerps.app.altTable,
+    );
   }
 
   async createAddLiquidityAbsoluteProposalTx(
@@ -81,7 +89,10 @@ export class MultisigProvider {
         },
         absoluteSlippageTolerance,
       );
-    return await this.createProposalTx(absoluteAddLiquidityIx);
+    return await this.createProposalTx(
+      absoluteAddLiquidityIx,
+      this.jupiterPerps.app.altTable,
+    );
   }
 
   async createRemoveLiquidityProposalTx(
@@ -103,7 +114,10 @@ export class MultisigProvider {
       denomOut,
       slippageTolerance,
     );
-    return await this.createProposalTx(removeLiquidityIx);
+    return await this.createProposalTx(
+      removeLiquidityIx,
+      this.jupiterPerps.app.altTable,
+    );
   }
 
   async createRemoveLiquidityAbsoluteProposalTx(
@@ -126,6 +140,26 @@ export class MultisigProvider {
         denomOut,
         absoluteSlippageTolerance,
       );
-    return await this.createProposalTx(absoluteRemoveLiquidityIx);
+    return await this.createProposalTx(
+      absoluteRemoveLiquidityIx,
+      this.jupiterPerps.app.altTable,
+    );
+  }
+
+  async wormholeTransferEthereum(
+    token: Coin,
+    receiver: string,
+  ): Promise<web3.Transaction> {
+    const transferWrappedIx =
+      await this.wormholeEthereum.transferTokensEthereum(
+        this.squadsMultisig.app.vaultPda,
+        receiver,
+        token,
+      );
+
+    return await this.createProposalTx(
+      transferWrappedIx,
+      this.wormholeEthereum.app.chains.get('Ethereum').altTable!,
+    );
   }
 }

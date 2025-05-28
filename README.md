@@ -1,4 +1,4 @@
-# SQUADS JLP Helper
+# SQUADS Helper
 
 This script automatically posts proposals into multisig with a different payload
 
@@ -32,6 +32,25 @@ squads_multisig:
   program_idl: /absolte/path/to/repo/squads-jlp-helper/idl/squads_multisig.json
   multisig_address: <web3.PublicKey>
   vault_pda: <web3.PublicKey>
+
+wormhole:
+  coins:
+    - coin: WBTC
+      decimals: 8
+      token_address: 3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh
+  chains:
+    - name: Ethereum
+      alt_table: GgiDHrbL3s6yaNeXi7Kd5BhkHRq6xL2geoKXUUqEZSN5
+      token_bridge_relayer: 3vxKRPwUTiEkeUVyoZ9MXFe1V71sRLbLqu1gRYaWmehQ
+      token_bridge: wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb
+      core_bridge: worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth
+      accounts:
+        - 7oPa2PHQdZmjSPqvpZN7MQxnC7Dcf3uL4oLqknGLk2S3
+        - 2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn
+        - Gv1KWf8DT1jKv5pKBmGaTmVszqa56Xn8YGx2Pg7i7qAk
+        - 9bFNrXNb2WTx8fMHXCheaZqkLZ3YCCaiqTftHxeintHy
+        - worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth
+        - wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb
 
 jupiter_perps:
   program_idl: /absolte/path/to/repo/squads-jlp-helper/idl/perpetuals.json
@@ -85,7 +104,15 @@ in any other token then all you need is to add a new item inside `coins` array, 
 
 # Running
 
-Please note that `TOKEN_AMOUNT` and `ABSOLUTE_SLIPPAGE_TOLERANCE` in both scripts has a microtoken (aka lowest) denomination. For example, for $USDC it's 6 and for $WETH it's 8
+## Execute Wormhole Transfer to Ethereum
+
+Example of how to run the script:
+
+```bash
+yarn run wormhole-ethereum --amount 123WBTC --recipient 0xABCDEF... --fee-tolerance 100
+```
+
+Notice that `--amount` option is case sensitive and should be used with capital letters. `--recipient` is a hex address in ethereum network who will receive these tokens. `--fee-tolerance` is a maximum fee tolerance for token bridge relayer. Please note that this option is only make sence in time when we create a proposal, not executing it.
 
 ## Add Liquidity
 
