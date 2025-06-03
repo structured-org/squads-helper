@@ -79,22 +79,6 @@ export class SquadsMultisig {
     });
   }
 
-  async proposalApproveIx(): Promise<web3.TransactionInstruction> {
-    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.baseApp.anchorProvider.connection,
-      this.squadsMultisigApp.multisigAddress,
-    );
-    const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-    this.logger.info(
-      `Proposal Approve Transaction Index -- ${transactionIndex}`,
-    );
-    return multisig.instructions.proposalApprove({
-      multisigPda: this.squadsMultisigApp.multisigAddress,
-      member: this.baseApp.keypair.publicKey,
-      transactionIndex: BigInt(transactionIndex),
-    });
-  }
-
   async batchAddIxV0(
     instruction: web3.TransactionInstruction,
     altData?: AddressLookupTableAccount,

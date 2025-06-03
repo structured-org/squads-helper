@@ -45,13 +45,11 @@ export class MultisigProvider {
       lookupTableAccount,
     );
     const proposalActivateIx = await this.squadsMultisig.proposalActivateIx();
-    const proposalApproveIx = await this.squadsMultisig.proposalApproveIx();
     const tx = new web3.Transaction().add(
       createBatchIx,
       createProposalIx,
       addInstructionIx,
       proposalActivateIx,
-      proposalApproveIx,
     );
     return tx;
   }
