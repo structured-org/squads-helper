@@ -87,13 +87,8 @@ registerWormholeEthereumCommand(
 );
 
 async function main() {
-  await createJupiterPerpsAltTableIfNotExist(
-    logger,
-    alt,
-    baseApp,
-    jupiterPerpsApp,
-  );
-  // await createWormholeAltTablesIfNotExist(alt, wormholeApp);
+  await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerpsApp);
+  await createWormholeAltTablesIfNotExist(alt, wormholeApp);
 
   // program.parse();
 }
