@@ -61,31 +61,17 @@ export class Alt {
   async createAndFillAlt<
     T extends { accounts: Array<web3.PublicKey>; altTable?: web3.PublicKey },
   >(instance: T, ty: string) {
-    if (instance.altTable === undefined) {
-      const createTable = await this.createTable(instance.accounts);
-      instance.altTable = new web3.PublicKey(
-        createTable.lookupTableAddress.toBase58(),
-      );
-      await simulateAndBroadcast(
-        this.baseApp.anchorProvider,
-        createTable.tx,
-        `${ty} ALT Creation`,
-        this.logger,
-        this.baseApp.keypair,
-      );
-    } else {
-      this.logger.info(`${ty} ALT Table Defined -- ${instance.altTable!}`);
-      const lookupTableAccount = (
-        await this.baseApp.anchorProvider.connection.getAddressLookupTable(
-          new web3.PublicKey(instance.altTable!),
-        )
-      ).value;
-      for (let i = 1; i <= lookupTableAccount.state.addresses.length; i += 1) {
-        this.logger.info(
-          `ALT Account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupTableAccount.state.addresses[i - 1]}`,
-        );
-      }
-    }
+    const createTable = await this.createTable(instance.accounts);
+    instance.altTable = new web3.PublicKey(
+      createTable.lookupTableAddress.toBase58(),
+    );
+    await simulateAndBroadcast(
+      this.baseApp.anchorProvider,
+      createTable.tx,
+      `${ty} ALT Creation`,
+      this.logger,
+      this.baseApp.keypair,
+    );
   }
 }
 
