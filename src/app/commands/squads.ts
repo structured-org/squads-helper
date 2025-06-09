@@ -1,9 +1,13 @@
 import { Command } from 'commander';
-import { simulateAndBroadcast } from '@lib/helpers';
+import {
+  simulateAndBroadcast,
+  simulateAndBroadcastVersionedTx,
+} from '@lib/helpers';
 import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import { SquadsMultisig } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
+import { JupiterPerps } from '@lib/jlp';
 
 export function registerCreateProposalCommand(
   program: Command,
@@ -41,7 +45,7 @@ export function registerActivateProposalCommand(
     )
     .requiredOption(
       '--proposal-index <index>',
-      'what proposal you wish to activate. This values can be usually taken from the logs of create-proposal',
+      'What proposal you wish to activate. This values can be usually taken from the logs of create-proposal',
     )
     .action(async (options) => {
       const activateProposalIx = squadsMultisig.proposalActivateByIndexIx(
@@ -54,6 +58,46 @@ export function registerActivateProposalCommand(
         'proposal activation',
         logger,
         baseApp.keypair,
+      );
+    });
+}
+
+export function registerExecuteProposalCommand(
+  program: Command,
+  logger: Logger,
+  baseApp: BaseApp,
+  squadsMultisig: SquadsMultisig,
+  jupiterPerps: JupiterPerps,
+) {
+  program
+    .command('execute-proposal')
+    .description('Execute all the instructions inside of the batch')
+    .requiredOption(
+      '--proposal-index <index>',
+      'What proposal you wish to execute. This values can be usually taken from the logs of create-proposal',
+    )
+    .requiredOption(
+      '--instructions-count <index>',
+      'Amount of instructions inside of the batch we need to execute in a row',
+    )
+    .action(async (options) => {
+      const executeProposalMsg = await squadsMultisig.proposalExecuteMsgV0(
+        options.proposalIndex!,
+        options.instructionsCount!,
+        (
+          await baseApp.anchorProvider.connection.getAddressLookupTable(
+            jupiterPerps.app.altTable!,
+          )
+        ).value,
+      );
+      const tx = new web3.VersionedTransaction(executeProposalMsg);
+      tx.sign([baseApp.keypair]);
+
+      await simulateAndBroadcastVersionedTx(
+        baseApp.anchorProvider,
+        tx,
+        'proposal execution',
+        logger,
       );
     });
 }

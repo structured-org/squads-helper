@@ -57,7 +57,7 @@ export class JupiterPerps {
         pool: this.jupiterPerpsApp.pool,
       })
       .remainingAccounts(
-        this.jupiterPerpsApp.accounts.map((account) => ({
+        this.jupiterPerpsApp.remainingAccounts.map((account) => ({
           pubkey: new web3.PublicKey(account),
           isWritable: false,
           isSigner: false,
@@ -180,13 +180,12 @@ export class JupiterPerps {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
-      (account) => ({
+    const remainingAccounts: AccountMeta[] =
+      this.jupiterPerpsApp.remainingAccounts.map((account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }),
-    );
+      }));
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
       minAmountOut: new BN(minAmountTokenOut.toString()),
@@ -283,13 +282,12 @@ export class JupiterPerps {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
-      (account) => ({
+    const remainingAccounts: AccountMeta[] =
+      this.jupiterPerpsApp.remainingAccounts.map((account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }),
-    );
+      }));
     const params = {
       tokenAmountIn: new BN(coin.amount.toString()),
       minLpAmountOut: new BN(minLpTokenAmount.toString()),

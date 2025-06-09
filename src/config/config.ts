@@ -20,7 +20,8 @@ type ConfigFile = {
       token_bridge_relayer: string;
       token_bridge: string;
       core_bridge: string;
-      accounts: Array<string>;
+      alt_accounts: Array<string>;
+      remaining_accounts: Array<string>;
     }>;
   };
   jupiter_perps: {
@@ -34,7 +35,8 @@ type ConfigFile = {
       coin: string;
       token_address: string;
     };
-    accounts: Array<string>;
+    remaining_accounts: Array<string>;
+    alt_accounts: Array<string>;
     coins: Array<{
       coin: 'WSOL' | 'USDC' | 'WETH' | 'USDT' | 'WBTC';
       decimals: number;
@@ -72,7 +74,8 @@ export type WormholeChain = {
   tokenBridgeRelayer: web3.PublicKey;
   tokenBridge: web3.PublicKey;
   coreBridge: web3.PublicKey;
-  accounts: Array<web3.PublicKey>;
+  altAccounts: Array<web3.PublicKey>;
+  remaningAccounts: Array<web3.PublicKey>;
 };
 
 export type WormholeToken = {
@@ -116,7 +119,8 @@ export type JupiterPerpsApp = {
   perpetuals: web3.PublicKey;
   program: web3.PublicKey;
   altTable?: web3.PublicKey;
-  accounts: web3.PublicKey[];
+  remainingAccounts: Array<web3.PublicKey>;
+  altAccounts: Array<web3.PublicKey>;
   coins: Map<string, JupiterPerpsToken>;
 };
 
@@ -181,7 +185,10 @@ export function getWormholeAppfromConfig(config: ConfigFile): WormholeApp {
           tokenBridgeRelayer: new web3.PublicKey(chain.token_bridge_relayer),
           tokenBridge: new web3.PublicKey(chain.token_bridge),
           coreBridge: new web3.PublicKey(chain.core_bridge),
-          accounts: chain.accounts.map(
+          remaningAccounts: chain.remaining_accounts.map(
+            (account) => new web3.PublicKey(account),
+          ),
+          altAccounts: chain.alt_accounts.map(
             (account) => new web3.PublicKey(account),
           ),
         };
@@ -213,7 +220,10 @@ export function getJupiterPerpsAppFromConfig(
     altTable: config.jupiter_perps.alt_table
       ? new web3.PublicKey(config.jupiter_perps.alt_table)
       : undefined,
-    accounts: config.jupiter_perps.accounts.map(
+    remainingAccounts: config.jupiter_perps.remaining_accounts.map(
+      (address) => new web3.PublicKey(address),
+    ),
+    altAccounts: config.jupiter_perps.alt_accounts.map(
       (address) => new web3.PublicKey(address),
     ),
     coins: new Map(

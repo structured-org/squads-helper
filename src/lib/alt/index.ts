@@ -3,6 +3,8 @@ import { Logger } from 'pino';
 import { type BaseApp } from '@config/config';
 import { simulateAndBroadcast } from '@lib/helpers';
 
+type HasAlt = { altAccounts: Array<web3.PublicKey>; altTable?: web3.PublicKey };
+
 export class Alt {
   private logger: Logger;
   private baseApp: BaseApp;
@@ -58,10 +60,8 @@ export class Alt {
     };
   }
 
-  private async createAndFillAlt<
-    T extends { accounts: Array<web3.PublicKey>; altTable?: web3.PublicKey },
-  >(instance: T, ty: string) {
-    const createTable = await this.createTable(instance.accounts);
+  private async createAndFillAlt<T extends HasAlt>(instance: T, ty: string) {
+    const createTable = await this.createTable(instance.altAccounts);
     instance.altTable = new web3.PublicKey(
       createTable.lookupTableAddress.toBase58(),
     );
@@ -74,9 +74,7 @@ export class Alt {
     );
   }
 
-  async createAndFillAltIfNecessary<
-    T extends { accounts: Array<web3.PublicKey>; altTable?: web3.PublicKey },
-  >(instance: T, ty: string) {
+  async createAndFillAltIfNecessary<T extends HasAlt>(instance: T, ty: string) {
     if (instance.altTable === undefined) {
       await this.createAndFillAlt(instance, ty);
     } else {
@@ -85,7 +83,7 @@ export class Alt {
           new web3.PublicKey(instance.altTable!),
         )
       ).value;
-      let expectedAccounts = [...instance.accounts];
+      let expectedAccounts = [...instance.altAccounts];
       this.logger.info(`${ty} ALT Table Defined -- ${instance.altTable!}`);
 
       for (let i = 1; i <= lookupTableAccount.state.addresses.length; i += 1) {

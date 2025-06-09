@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { registerWormholeEthereumCommand } from './commands/wormhole';
 import {
   registerAddLiquidityCommand,
+  registerBatchAddLiquidityCommand,
   registerAbsoluteAddLiquidityCommand,
 } from './commands/add_liquidity';
 import {
@@ -10,6 +11,7 @@ import {
 } from './commands/remove_liquidity';
 import {
   registerActivateProposalCommand,
+  registerExecuteProposalCommand,
   registerCreateProposalCommand,
 } from './commands/squads';
 
@@ -60,6 +62,20 @@ program
 
 registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerExecuteProposalCommand(
+  program,
+  logger,
+  baseApp,
+  squadsMultisig,
+  jupiterPerps,
+);
+registerBatchAddLiquidityCommand(
+  program,
+  logger,
+  baseApp,
+  jupiterPerps,
+  squadsMultisig,
+);
 registerAddLiquidityCommand(
   program,
   logger,

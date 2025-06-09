@@ -82,26 +82,52 @@ export class SquadsMultisig {
     return this.proposalActivateByIndexIx(transactionIndex);
   }
 
-  async batchAddIxV0(
+  async proposalExecuteMsgV0(
+    index: number,
+    instructionsCount: number,
+    altData?: AddressLookupTableAccount,
+  ): Promise<web3.MessageV0> {
+    const batchInstructions: Array<web3.TransactionInstruction> = [];
+    for (let i = 1; i <= instructionsCount; i += 1) {
+      const res = await multisig.instructions.batchExecuteTransaction({
+        connection: this.baseApp.anchorProvider.connection,
+        multisigPda: this.squadsMultisigApp.multisigAddress,
+        member: this.baseApp.keypair.publicKey,
+        batchIndex: BigInt(index),
+        transactionIndex: i,
+      });
+      batchInstructions.push(res.instruction);
+    }
+
+    return new web3.TransactionMessage({
+      payerKey: this.baseApp.keypair.publicKey,
+      recentBlockhash: (
+        await this.baseApp.anchorProvider.connection.getLatestBlockhash()
+      ).blockhash,
+      instructions: batchInstructions,
+    }).compileToV0Message([altData]);
+  }
+
+  async batchAddByIndexIxV0(
+    index: number,
+    proposalInstructionIndex: number,
     instruction: web3.TransactionInstruction,
     altData?: AddressLookupTableAccount,
   ): Promise<web3.TransactionInstruction> {
-    const multisigInfo = await this.getMultisigInfo();
-    const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const [proposalPda] = multisig.getProposalPda({
       multisigPda: this.squadsMultisigApp.multisigAddress,
-      transactionIndex: BigInt(transactionIndex),
+      transactionIndex: BigInt(index),
       programId: multisig.PROGRAM_ID,
     });
     const [batchPda] = multisig.getTransactionPda({
       multisigPda: this.squadsMultisigApp.multisigAddress,
-      index: BigInt(transactionIndex),
+      index: BigInt(index),
       programId: multisig.PROGRAM_ID,
     });
     const [batchTransactionPda] = multisig.getBatchTransactionPda({
       multisigPda: this.squadsMultisigApp.multisigAddress,
-      batchIndex: BigInt(transactionIndex),
-      transactionIndex: 1,
+      batchIndex: BigInt(index),
+      transactionIndex: proposalInstructionIndex,
       programId: multisig.PROGRAM_ID,
     });
     const compiledMessage = compileToWrappedMessageV0({
@@ -133,7 +159,7 @@ export class SquadsMultisig {
     this.logger.info(`Batch PDA -- ${batchPda.toBase58()}`);
     this.logger.info(`Proposal PDA -- ${proposalPda.toBase58()}`);
     this.logger.info(`Transaction PDA -- ${batchTransactionPda.toBase58()}`);
-    this.logger.info(`Transaction Index -- ${transactionIndex}`);
+    this.logger.info(`Transaction Index -- ${index}`);
     return createBatchAddTransactionInstruction(
       {
         multisig: this.squadsMultisigApp.multisigAddress,
@@ -151,5 +177,14 @@ export class SquadsMultisig {
       },
       multisig.PROGRAM_ID,
     );
+  }
+
+  async batchAddIxV0(
+    instruction: web3.TransactionInstruction,
+    altData?: AddressLookupTableAccount,
+  ): Promise<web3.TransactionInstruction> {
+    const multisigInfo = await this.getMultisigInfo();
+    const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    return this.batchAddByIndexIxV0(transactionIndex, 1, instruction, altData);
   }
 }
