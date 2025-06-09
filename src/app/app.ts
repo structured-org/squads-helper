@@ -1,9 +1,13 @@
 import { Command } from 'commander';
-import { registerWormholeEthereumCommand } from './commands/wormhole_ethereum';
-import { registerAddLiquidityCommand } from './commands/add_liquidity';
-import { registerRemoveLiquidityCommand } from './commands/remove_liquidity';
-import { registerAbsoluteAddLiquidityCommand } from './commands/absolte_add_liquidity';
-import { registerAbsoluteRemoveLiquidityCommand } from './commands/absolute_remove_liquidity';
+import { registerWormholeEthereumCommand } from './commands/wormhole';
+import {
+  registerAddLiquidityCommand,
+  registerAbsoluteAddLiquidityCommand,
+} from './commands/add_liquidity';
+import {
+  registerRemoveLiquidityCommand,
+  registerAbsoluteRemoveLiquidityCommand,
+} from './commands/remove_liquidity';
 
 import {
   getBaseApp,
@@ -90,7 +94,7 @@ async function main() {
   await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerpsApp);
   await createWormholeAltTablesIfNotExist(alt, wormholeApp);
 
-  // program.parse();
+  program.parse();
 }
 
 main();
