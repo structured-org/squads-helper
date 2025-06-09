@@ -8,6 +8,10 @@ import {
   registerRemoveLiquidityCommand,
   registerAbsoluteRemoveLiquidityCommand,
 } from './commands/remove_liquidity';
+import {
+  registerActivateProposalCommand,
+  registerCreateProposalCommand,
+} from './commands/squads';
 
 import {
   getBaseApp,
@@ -54,6 +58,8 @@ program
   .description('CLI to operate a SQUADS multisig with different messages')
   .version('1.1.0');
 
+registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerAddLiquidityCommand(
   program,
   logger,

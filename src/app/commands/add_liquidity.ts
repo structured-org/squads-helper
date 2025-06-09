@@ -27,7 +27,6 @@ export function registerAddLiquidityCommand(
       'Slippage tolerance for JLP tokens (e.g. --slippage-tolerance 0.5)',
     )
     .action(async (options) => {
-      logger.debug('Reading the config');
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );
@@ -81,7 +80,6 @@ export function registerAbsoluteAddLiquidityCommand(
       'Minimum JLP amount out from provided liquidity (e.g. --min-lp-amount-out 100)',
     )
     .action(async (options) => {
-      logger.debug('Reading the config');
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );

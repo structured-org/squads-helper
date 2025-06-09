@@ -31,7 +31,6 @@ export function registerRemoveLiquidityCommand(
       'What you prefer to withdraw in exchange (e.g. --denom-out USDC)',
     )
     .action(async (options) => {
-      logger.debug('Reading the config');
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );
@@ -91,7 +90,6 @@ export function registerAbsoluteRemoveLiquidityCommand(
       'Minimum --denom-out amount out from the given JLP (e.g. --min-amount-token-out 100USDC)',
     )
     .action(async (options) => {
-      logger.debug('Reading the config');
       const [, amountIn, denomIn] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );

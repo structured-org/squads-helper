@@ -9,6 +9,7 @@ import {
 
 import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
+import { Multisig } from '@sqds/multisig/lib/generated';
 
 export class SquadsMultisig {
   private logger: Logger;
@@ -29,11 +30,16 @@ export class SquadsMultisig {
     return this.squadsMultisigApp;
   }
 
-  async createProposalIx(): Promise<web3.TransactionInstruction> {
+  async getMultisigInfo(): Promise<Multisig> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
       this.baseApp.anchorProvider.connection,
       this.squadsMultisigApp.multisigAddress,
     );
+    return multisigInfo;
+  }
+
+  async createProposalIx(): Promise<web3.TransactionInstruction> {
+    const multisigInfo = await this.getMultisigInfo();
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const proposalCreateInstruction = multisig.instructions.proposalCreate({
       multisigPda: this.squadsMultisigApp.multisigAddress,
@@ -48,10 +54,7 @@ export class SquadsMultisig {
   }
 
   async createBatchIx(): Promise<web3.TransactionInstruction> {
-    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.baseApp.anchorProvider.connection,
-      this.squadsMultisigApp.multisigAddress,
-    );
+    const multisigInfo = await this.getMultisigInfo();
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const batchCreateInstruction = multisig.instructions.batchCreate({
       batchIndex: BigInt(transactionIndex),
@@ -63,30 +66,27 @@ export class SquadsMultisig {
     return batchCreateInstruction;
   }
 
-  async proposalActivateIx(): Promise<web3.TransactionInstruction> {
-    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.baseApp.anchorProvider.connection,
-      this.squadsMultisigApp.multisigAddress,
-    );
-    const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
-    this.logger.info(
-      `Proposal Activate Transaction Index -- ${transactionIndex}`,
-    );
-    return multisig.instructions.proposalActivate({
+  proposalActivateByIndexIx(index: number): web3.TransactionInstruction {
+    this.logger.info(`Proposal Activate Transaction Index -- ${index}`);
+    const ix = multisig.instructions.proposalActivate({
       multisigPda: this.squadsMultisigApp.multisigAddress,
       member: this.baseApp.keypair.publicKey,
-      transactionIndex: BigInt(transactionIndex),
+      transactionIndex: BigInt(index),
     });
+    return ix;
+  }
+
+  async proposalActivateIx(): Promise<web3.TransactionInstruction> {
+    const multisigInfo = await this.getMultisigInfo();
+    const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
+    return this.proposalActivateByIndexIx(transactionIndex);
   }
 
   async batchAddIxV0(
     instruction: web3.TransactionInstruction,
     altData?: AddressLookupTableAccount,
   ): Promise<web3.TransactionInstruction> {
-    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      this.baseApp.anchorProvider.connection,
-      this.squadsMultisigApp.multisigAddress,
-    );
+    const multisigInfo = await this.getMultisigInfo();
     const transactionIndex = Number(multisigInfo.transactionIndex) + 1;
     const [proposalPda] = multisig.getProposalPda({
       multisigPda: this.squadsMultisigApp.multisigAddress,
