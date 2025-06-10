@@ -7,8 +7,10 @@ import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import { SquadsMultisig } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
+import { Alt, createJupiterPerpsAltTableIfNotExist } from '@lib/alt';
 
 export function registerBatchAddLiquidityCommand(
+  alt: Alt,
   program: Command,
   logger: Logger,
   baseApp: BaseApp,
@@ -37,6 +39,8 @@ export function registerBatchAddLiquidityCommand(
       'Every instruction should have the index, starting with 1',
     )
     .action(async (options) => {
+      await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
+
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );
@@ -83,6 +87,7 @@ export function registerBatchAddLiquidityCommand(
 }
 
 export function registerAddLiquidityCommand(
+  alt: Alt,
   program: Command,
   logger: Logger,
   baseApp: BaseApp,
@@ -103,6 +108,8 @@ export function registerAddLiquidityCommand(
       'Slippage tolerance for JLP tokens (e.g. --slippage-tolerance 0.5)',
     )
     .action(async (options) => {
+      await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
+
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );

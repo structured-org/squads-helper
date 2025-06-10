@@ -10,6 +10,67 @@ import { web3, Program, BN } from '@project-serum/anchor';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AccountMeta } from '@solana/web3.js';
 
+export const AddLiquidity2Discriminator = JSON.stringify([
+  228, 162, 78, 28, 70, 219, 116, 115,
+]);
+
+export const RemoveLiquidity2Discriminator = JSON.stringify([
+  230, 215, 82, 127, 241, 101, 227, 146,
+]);
+
+export class AddLiquidity2Params {
+  tokenAmountIn: bigint;
+  minLpAmountOut: bigint;
+  tokenAmountPreSwap: null | bigint;
+
+  static deserialize(data: Uint8Array): AddLiquidity2Params {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8;
+
+    const tokenAmountIn = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const minLpAmountOut = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const hasTokenAmountPreSwap = view.getUint8(offset);
+    offset += 1;
+
+    let tokenAmountPreSwap: bigint | null = null;
+    if (hasTokenAmountPreSwap === 1) {
+      tokenAmountPreSwap = view.getBigUint64(offset, true);
+      offset += 8;
+    }
+
+    return {
+      tokenAmountIn,
+      minLpAmountOut,
+      tokenAmountPreSwap,
+    };
+  }
+}
+
+export class RemoveLiquidity2Params {
+  lpAmountIn: bigint;
+  minAmountOut: bigint;
+
+  static deserialize(data: Uint8Array): RemoveLiquidity2Params {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8;
+
+    const lpAmountIn = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const minAmountOut = view.getBigUint64(offset, true);
+    offset += 8;
+
+    return {
+      lpAmountIn,
+      minAmountOut,
+    };
+  }
+}
+
 type PoolAum = {
   WSOL: BigNumber;
   WETH: BigNumber;

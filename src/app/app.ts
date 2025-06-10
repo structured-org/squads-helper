@@ -23,11 +23,7 @@ import { SquadsMultisig } from '@lib/squads';
 import { getLogger } from '@lib/logger';
 import { JupiterPerps } from '@lib/jlp';
 import { WormholeEthereum } from '@lib/wormhole';
-import {
-  Alt,
-  createJupiterPerpsAltTableIfNotExist,
-  createWormholeAltTablesIfNotExist,
-} from '@lib/alt';
+import { Alt } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
 
 const logger = getLogger();
@@ -68,6 +64,7 @@ registerExecuteProposalCommand(
   jupiterPerps,
 );
 registerBatchAddLiquidityCommand(
+  alt,
   program,
   logger,
   baseApp,
@@ -75,6 +72,7 @@ registerBatchAddLiquidityCommand(
   squadsMultisig,
 );
 registerAddLiquidityCommand(
+  alt,
   program,
   logger,
   baseApp,
@@ -82,6 +80,7 @@ registerAddLiquidityCommand(
   multisigProvider,
 );
 registerRemoveLiquidityCommand(
+  alt,
   program,
   logger,
   baseApp,
@@ -89,6 +88,7 @@ registerRemoveLiquidityCommand(
   multisigProvider,
 );
 registerWormholeEthereumCommand(
+  alt,
   program,
   logger,
   baseApp,
@@ -96,10 +96,7 @@ registerWormholeEthereumCommand(
   multisigProvider,
 );
 
-async function main() {
-  await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerpsApp);
-  await createWormholeAltTablesIfNotExist(alt, wormholeApp);
-
+function main() {
   program.parse();
 }
 

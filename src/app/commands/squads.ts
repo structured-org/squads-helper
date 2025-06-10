@@ -7,8 +7,18 @@ import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import { Batch, SquadsMultisig, VaultTransaction } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
-import { JupiterPerps } from '@lib/jlp';
+import {
+  AddLiquidity2Discriminator,
+  AddLiquidity2Params,
+  JupiterPerps,
+  RemoveLiquidity2Discriminator,
+  RemoveLiquidity2Params,
+} from '@lib/jlp';
 import { getBatchTransactionPda, getTransactionPda } from '@sqds/multisig';
+
+BigInt.prototype['toJSON'] = function () {
+  return this.toString();
+};
 
 export function registerCreateProposalCommand(
   program: Command,
@@ -135,7 +145,33 @@ export function registerCheckProposalCommand(
             transactionPda,
           );
         const transaction = VaultTransaction.deserialize(accountInfo.data);
-        console.log(JSON.stringify(transaction, null, 2));
+        for (const instruction of transaction.message.instructions) {
+          const method = instruction.data.subarray(0, 8);
+          switch (JSON.stringify(Array.from(method))) {
+            case AddLiquidity2Discriminator:
+              {
+                const params = AddLiquidity2Params.deserialize(
+                  instruction.data,
+                );
+                console.log('add liquidity', JSON.stringify(params, null, 2));
+              }
+              break;
+            case RemoveLiquidity2Discriminator:
+              {
+                const params = RemoveLiquidity2Params.deserialize(
+                  instruction.data,
+                );
+                console.log(
+                  'remove liquidity',
+                  JSON.stringify(params, null, 2),
+                );
+              }
+              break;
+            default: {
+              console.log(undefined);
+            }
+          }
+        }
       }
     });
 }

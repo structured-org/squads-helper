@@ -5,8 +5,10 @@ import { MultisigProvider } from '@lib/multisig_provider';
 import { simulateAndBroadcast } from '@lib/helpers';
 import { Logger } from 'pino';
 import { BaseApp } from '@config/config';
+import { Alt, createJupiterPerpsAltTableIfNotExist } from '@lib/alt';
 
 export function registerRemoveLiquidityCommand(
+  alt: Alt,
   program: Command,
   logger: Logger,
   baseApp: BaseApp,
@@ -31,6 +33,8 @@ export function registerRemoveLiquidityCommand(
       'What you prefer to withdraw in exchange (e.g. --denom-out USDC)',
     )
     .action(async (options) => {
+      await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
+
       const [, amount, denom] = options.amount.match(
         /^(\d+(?:\.\d+)?)([A-Z]+)$/,
       );

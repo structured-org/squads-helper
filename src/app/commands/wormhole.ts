@@ -5,8 +5,10 @@ import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import { WormholeEthereum } from '@lib/wormhole';
 import { bignumber } from 'mathjs';
+import { Alt, createWormholeAltTablesIfNotExist } from '@lib/alt';
 
 export function registerWormholeEthereumCommand(
+  alt: Alt,
   program: Command,
   logger: Logger,
   baseApp: BaseApp,
@@ -31,7 +33,8 @@ export function registerWormholeEthereumCommand(
       'Fee tolerance for transferring tokens, denomination is taken from <amount> option (e.g. --fee-tolerance 123)',
     )
     .action(async (options) => {
-      logger.debug('Reading the config');
+      await createWormholeAltTablesIfNotExist(alt, wormholeEthereum.app);
+
       const regexResult = options.amount.match(/^(\d+)([A-Z]+)$/);
       if (regexResult === null) {
         logger.error(
