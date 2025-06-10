@@ -255,9 +255,9 @@ export class SquadsMultisig {
   async proposalExecuteMsgV0(
     index: number,
     instructionsCount: number,
-    altData?: AddressLookupTableAccount,
   ): Promise<web3.MessageV0> {
     const batchInstructions: Array<web3.TransactionInstruction> = [];
+    const altTables: Set<web3.AddressLookupTableAccount> = new Set();
     for (let i = 1; i <= instructionsCount; i += 1) {
       const res = await multisig.instructions.batchExecuteTransaction({
         connection: this.baseApp.anchorProvider.connection,
@@ -267,6 +267,9 @@ export class SquadsMultisig {
         transactionIndex: i,
       });
       batchInstructions.push(res.instruction);
+      for (const alt of res.lookupTableAccounts) {
+        altTables.add(alt);
+      }
     }
     return new web3.TransactionMessage({
       payerKey: this.baseApp.keypair.publicKey,
@@ -274,7 +277,7 @@ export class SquadsMultisig {
         await this.baseApp.anchorProvider.connection.getLatestBlockhash()
       ).blockhash,
       instructions: batchInstructions,
-    }).compileToV0Message([altData]);
+    }).compileToV0Message([...altTables]);
   }
 
   async batchAddByIndexIxV0(

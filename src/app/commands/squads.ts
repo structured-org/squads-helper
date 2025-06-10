@@ -10,15 +10,10 @@ import { web3 } from '@project-serum/anchor';
 import {
   AddLiquidity2Discriminator,
   AddLiquidity2Params,
-  JupiterPerps,
   RemoveLiquidity2Discriminator,
   RemoveLiquidity2Params,
 } from '@lib/jlp';
-import {
-  getBatchTransactionPda,
-  getProposalPda,
-  getTransactionPda,
-} from '@sqds/multisig';
+import { getBatchTransactionPda, getTransactionPda } from '@sqds/multisig';
 import * as treeify from 'treeify';
 
 BigInt.prototype['toJSON'] = function () {
@@ -83,7 +78,6 @@ export function registerExecuteProposalCommand(
   logger: Logger,
   baseApp: BaseApp,
   squadsMultisig: SquadsMultisig,
-  jupiterPerps: JupiterPerps,
 ) {
   program
     .command('execute-proposal')
@@ -100,11 +94,6 @@ export function registerExecuteProposalCommand(
       const executeProposalMsg = await squadsMultisig.proposalExecuteMsgV0(
         options.proposalIndex!,
         options.instructionsCount!,
-        (
-          await baseApp.anchorProvider.connection.getAddressLookupTable(
-            jupiterPerps.app.altTable!,
-          )
-        ).value,
       );
       const tx = new web3.VersionedTransaction(executeProposalMsg);
       tx.sign([baseApp.keypair]);
