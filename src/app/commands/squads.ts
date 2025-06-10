@@ -5,7 +5,13 @@ import {
 } from '@lib/helpers';
 import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
-import { Batch, SquadsMultisig, VaultTransaction } from '@lib/squads';
+import {
+  Batch,
+  Proposal,
+  proposalStatusToString,
+  SquadsMultisig,
+  VaultTransaction,
+} from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import {
   AddLiquidity2Discriminator,
@@ -13,7 +19,11 @@ import {
   RemoveLiquidity2Discriminator,
   RemoveLiquidity2Params,
 } from '@lib/jlp';
-import { getBatchTransactionPda, getTransactionPda } from '@sqds/multisig';
+import {
+  getBatchTransactionPda,
+  getProposalPda,
+  getTransactionPda,
+} from '@sqds/multisig';
 import * as treeify from 'treeify';
 
 BigInt.prototype['toJSON'] = function () {
@@ -125,12 +135,14 @@ export function registerCheckProposalCommand(
         multisigPda: squadsMultisig.app.multisigAddress,
         index: options.proposalIndex!,
       });
-      const treeResult = {
-        batch: {},
-      };
-      const accountInfo =
+      const batchPdaAccountInfo =
         await baseApp.anchorProvider.connection.getAccountInfo(batchPda);
-      const batch = Batch.deserialize(accountInfo.data);
+      const batch = Batch.deserialize(batchPdaAccountInfo.data);
+      const treeResult = {
+        proposal: {
+          batch: {},
+        },
+      };
       for (let i = 1; i <= batch.size; i += 1) {
         const [transactionPda] = getBatchTransactionPda({
           multisigPda: squadsMultisig.app.multisigAddress,
@@ -150,14 +162,14 @@ export function registerCheckProposalCommand(
                 const params = AddLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                treeResult.batch[`ix_${i} AddLiquidity2`] = {};
-                treeResult.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i} AddLiquidity2`] = {};
+                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
                   `tokenAmountIn: ${params.tokenAmountIn}`
                 ] = {};
-                treeResult.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
                   `minLpAmountOut: ${params.minLpAmountOut}`
                 ] = {};
-                treeResult.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
                   `tokenAmountPreSwap: ${params.tokenAmountPreSwap}`
                 ] = {};
               }
@@ -167,21 +179,31 @@ export function registerCheckProposalCommand(
                 const params = RemoveLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                treeResult.batch[`ix_${i} RemoveLiquidity2`] = {};
-                treeResult.batch[`ix_${i} RemoveLiquidity2`][
+                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`] = {};
+                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`][
                   `lpAmountIn: ${params.lpAmountIn}`
                 ] = {};
-                treeResult.batch[`ix_${i} RemoveLiquidity2`][
+                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`][
                   `minAmountOut: ${params.minAmountOut}`
                 ] = {};
               }
               break;
             default: {
-              treeResult.batch[`ix_${i} undefined`] = {};
+              treeResult.proposal.batch[`ix_${i} undefined`] = {};
             }
           }
         }
       }
+      const [proposalPda] = getProposalPda({
+        multisigPda: squadsMultisig.app.multisigAddress,
+        transactionIndex: options.proposalIndex!,
+      });
+      const proposalPdaAccountInfo =
+        await baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
+      const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+      treeResult[`proposal (${proposalStatusToString(proposal.status)})`] =
+        treeResult.proposal;
+      delete treeResult.proposal;
       console.log(treeify.asTree(treeResult));
     });
 }
