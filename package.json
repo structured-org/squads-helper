@@ -8,8 +8,6 @@
     "wormhole-ethereum": "node -r ts-node/register --env-file=./.env src/app/app.ts wormhole-ethereum",
     "add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts add-liquidity",
     "remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts remove-liquidity",
-    "absolute-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-add-liquidity",
-    "absolute-remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-remove-liquidity",
     "create-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts create-proposal",
     "activate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts activate-proposal",
     "batch-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts batch-add-liquidity",

@@ -3,12 +3,8 @@ import { registerWormholeEthereumCommand } from './commands/wormhole';
 import {
   registerAddLiquidityCommand,
   registerBatchAddLiquidityCommand,
-  registerAbsoluteAddLiquidityCommand,
 } from './commands/add_liquidity';
-import {
-  registerRemoveLiquidityCommand,
-  registerAbsoluteRemoveLiquidityCommand,
-} from './commands/remove_liquidity';
+import { registerRemoveLiquidityCommand } from './commands/remove_liquidity';
 import {
   registerActivateProposalCommand,
   registerExecuteProposalCommand,
@@ -84,20 +80,6 @@ registerAddLiquidityCommand(
   multisigProvider,
 );
 registerRemoveLiquidityCommand(
-  program,
-  logger,
-  baseApp,
-  jupiterPerps,
-  multisigProvider,
-);
-registerAbsoluteAddLiquidityCommand(
-  program,
-  logger,
-  baseApp,
-  jupiterPerps,
-  multisigProvider,
-);
-registerAbsoluteRemoveLiquidityCommand(
   program,
   logger,
   baseApp,

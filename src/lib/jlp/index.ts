@@ -239,23 +239,6 @@ export class JupiterPerps {
     );
   }
 
-  async absoluteRemoveLiquidityIx(
-    provider: web3.PublicKey,
-    lpIn: Coin,
-    denomOut: string,
-    absoluteSlippageTolerance: number,
-  ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
-    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(`minAmountOut -- ${absoluteSlippageTolerance.toString()}`);
-    return await this.removeLiquidityIx(
-      provider,
-      lpIn,
-      outputCoin,
-      bignumber(absoluteSlippageTolerance),
-    );
-  }
-
   async addLiquidityIx(
     provider: web3.PublicKey,
     coin: Coin,
@@ -332,21 +315,5 @@ export class JupiterPerps {
     this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
     this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     return await this.addLiquidityIx(provider, coin, minLpTokenAmount);
-  }
-
-  async absoluteAddLiquidityIx(
-    provider: web3.PublicKey,
-    lpIn: Coin,
-    absoluteSlippageTolerance: number,
-  ): Promise<web3.TransactionInstruction> {
-    this.logger.info(`tokenAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(
-      `minLpTokenAmount -- ${absoluteSlippageTolerance.toString()}`,
-    );
-    return await this.addLiquidityIx(
-      provider,
-      lpIn,
-      bignumber(absoluteSlippageTolerance),
-    );
   }
 }

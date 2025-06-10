@@ -98,7 +98,6 @@ export class SquadsMultisig {
       });
       batchInstructions.push(res.instruction);
     }
-
     return new web3.TransactionMessage({
       payerKey: this.baseApp.keypair.publicKey,
       recentBlockhash: (
