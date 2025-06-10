@@ -23,7 +23,7 @@ export class Ms {
   members: Array<{
     key: web3.PublicKey;
     permissions: {
-      maks: number; // u8
+      mask: number; // u8
     };
   }>;
 
@@ -71,10 +71,10 @@ export class Ms {
       const key = new web3.PublicKey(data.slice(offset, offset + 32));
       offset += 32;
 
-      const maks = view.getUint8(offset);
+      const mask = view.getUint8(offset);
       offset += 1;
 
-      members.push({ key, permissions: { maks } });
+      members.push({ key, permissions: { mask } });
     }
 
     return {

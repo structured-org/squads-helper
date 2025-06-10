@@ -9,6 +9,7 @@ import {
   Batch,
   Ms,
   Proposal,
+  ProposalStatus,
   proposalStatusToString,
   SquadsMultisig,
   VaultTransaction,
@@ -108,20 +109,38 @@ export function registerSimulateProposalCommand(
           squadsMultisig.app.multisigAddress,
         );
       const ms = Ms.deserialize(msPdaAccountInfo.data);
-      const voters = ms.members.filter(
-        (member) => member.permissions.maks === 7,
-      );
-      let threshold = ms.threshold;
+
+      const [proposalPda] = getProposalPda({
+        multisigPda: squadsMultisig.app.multisigAddress,
+        transactionIndex: options.proposalIndex!,
+      });
+      const proposalPdaAccountInfo =
+        await baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
+      const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+      const excludedKeys = new Set([
+        ...proposal.approved.map((k) => k.toBase58()),
+        ...proposal.rejected.map((k) => k.toBase58()),
+        ...proposal.cancelled.map((k) => k.toBase58()),
+      ]);
+      const voters = ms.members
+        .filter((member) => member.permissions.mask === 7)
+        .filter((member) => !excludedKeys.has(member.key.toBase58()));
       const voteIxs: Array<web3.TransactionInstruction> = [];
-      let i = 0;
-      while (threshold--) {
-        const voteIx = SquadsInstructions.proposalApprove({
-          multisigPda: squadsMultisig.app.multisigAddress,
-          transactionIndex: options.proposalIndex!,
-          member: voters[i].key,
-        });
-        voteIxs.push(voteIx);
-        i += 1;
+      if (
+        proposal.status === ProposalStatus.Draft ||
+        proposal.status === ProposalStatus.Active
+      ) {
+        let threshold = ms.threshold;
+        let i = 0;
+        while (threshold--) {
+          const voteIx = SquadsInstructions.proposalApprove({
+            multisigPda: squadsMultisig.app.multisigAddress,
+            transactionIndex: options.proposalIndex!,
+            member: voters[i].key,
+          });
+          voteIxs.push(voteIx);
+          i += 1;
+        }
       }
       const batchExecuteIxs = await squadsMultisig.proposalExecuteBatchIxs(
         options.proposalIndex!,
