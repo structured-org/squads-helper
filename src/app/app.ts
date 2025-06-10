@@ -10,6 +10,7 @@ import {
   registerExecuteProposalCommand,
   registerCreateProposalCommand,
   registerCheckProposalCommand,
+  registerSimulateProposalCommand,
 } from './commands/squads';
 
 import {
@@ -57,6 +58,7 @@ registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCheckProposalCommand(program, logger, baseApp, squadsMultisig);
 registerExecuteProposalCommand(program, logger, baseApp, squadsMultisig);
+registerSimulateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerBatchAddLiquidityCommand(
   alt,
   program,

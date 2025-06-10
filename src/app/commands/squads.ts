@@ -7,6 +7,7 @@ import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import {
   Batch,
+  Ms,
   Proposal,
   proposalStatusToString,
   SquadsMultisig,
@@ -23,6 +24,7 @@ import {
   getBatchTransactionPda,
   getProposalPda,
   getTransactionPda,
+  instructions as SquadsInstructions,
 } from '@sqds/multisig';
 import * as treeify from 'treeify';
 
@@ -80,6 +82,62 @@ export function registerActivateProposalCommand(
         logger,
         baseApp.keypair,
       );
+    });
+}
+
+export function registerSimulateProposalCommand(
+  program: Command,
+  logger: Logger,
+  baseApp: BaseApp,
+  squadsMultisig: SquadsMultisig,
+) {
+  program
+    .command('simulate-proposal')
+    .description('Execute all the instructions inside of the batch')
+    .requiredOption(
+      '--proposal-index <index>',
+      'What proposal you wish to execute. This values can be usually taken from the logs of create-proposal',
+    )
+    .requiredOption(
+      '--instructions-count <index>',
+      'Amount of instructions inside of the batch we need to simulate in a row',
+    )
+    .action(async (options) => {
+      const msPdaAccountInfo =
+        await baseApp.anchorProvider.connection.getAccountInfo(
+          squadsMultisig.app.multisigAddress,
+        );
+      const ms = Ms.deserialize(msPdaAccountInfo.data);
+      const voters = ms.members.filter(
+        (member) => member.permissions.maks === 7,
+      );
+      let threshold = ms.threshold;
+      const voteIxs: Array<web3.TransactionInstruction> = [];
+      let i = 0;
+      while (threshold--) {
+        const voteIx = SquadsInstructions.proposalApprove({
+          multisigPda: squadsMultisig.app.multisigAddress,
+          transactionIndex: options.proposalIndex!,
+          member: voters[i].key,
+        });
+        voteIxs.push(voteIx);
+        i += 1;
+      }
+      const batchExecuteIxs = await squadsMultisig.proposalExecuteBatchIxs(
+        options.proposalIndex!,
+        options.instructionsCount!,
+      );
+      const txMsgV0 = new web3.TransactionMessage({
+        payerKey: baseApp.keypair.publicKey,
+        recentBlockhash: (
+          await baseApp.anchorProvider.connection.getLatestBlockhash()
+        ).blockhash,
+        instructions: [...voteIxs, ...batchExecuteIxs.batchIxs],
+      }).compileToV0Message(batchExecuteIxs.altTables);
+      const tx = new web3.VersionedTransaction(txMsgV0);
+      const simulationResult =
+        await baseApp.anchorProvider.connection.simulateTransaction(tx);
+      console.log(simulationResult);
     });
 }
 

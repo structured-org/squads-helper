@@ -11,6 +11,86 @@ import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
 import { Multisig } from '@sqds/multisig/lib/generated';
 
+export class Ms {
+  createKey: web3.PublicKey;
+  configAuthority: web3.PublicKey;
+  threshold: number; // u16
+  timelock: number; // u32
+  transactionIndex: bigint; // u64
+  staleTransactionIndex: bigint; // u64
+  rentCollector: null | web3.PublicKey; // Option<web3.PublicKey>
+  bump: number; // u8
+  members: Array<{
+    key: web3.PublicKey;
+    permissions: {
+      maks: number; // u8
+    };
+  }>;
+
+  static deserialize(data: Uint8Array): Ms {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8;
+
+    const createKey = new web3.PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    const configAuthority = new web3.PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    const threshold = view.getUint16(offset, true);
+    offset += 2;
+
+    const timelock = view.getUint32(offset, true);
+    offset += 4;
+
+    const transactionIndex = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const staleTransactionIndex = view.getBigUint64(offset, true);
+    offset += 8;
+
+    // Option<PublicKey>
+    const hasRentCollector = view.getUint8(offset);
+    offset += 1;
+
+    let rentCollector: web3.PublicKey | null = null;
+    if (hasRentCollector) {
+      rentCollector = new web3.PublicKey(data.slice(offset, offset + 32));
+      offset += 32;
+    }
+
+    const bump = view.getUint8(offset);
+    offset += 1;
+
+    // Vec<Member>
+    const membersLength = view.getUint32(offset, true);
+    offset += 4;
+
+    const members: Ms['members'] = [];
+    for (let i = 0; i < membersLength; i++) {
+      const key = new web3.PublicKey(data.slice(offset, offset + 32));
+      offset += 32;
+
+      const maks = view.getUint8(offset);
+      offset += 1;
+
+      members.push({ key, permissions: { maks } });
+    }
+
+    return {
+      createKey,
+      configAuthority,
+      threshold,
+      timelock,
+      transactionIndex,
+      staleTransactionIndex,
+      rentCollector,
+      bump,
+      members,
+    };
+  }
+}
+
 export enum ProposalStatus {
   Draft, // { timestamp: i64 }
   Active, // { timestamp: i64 }
@@ -356,12 +436,15 @@ export class SquadsMultisig {
     return this.proposalActivateByIndexIx(transactionIndex);
   }
 
-  async proposalExecuteMsgV0(
+  async proposalExecuteBatchIxs(
     index: number,
     instructionsCount: number,
-  ): Promise<web3.MessageV0> {
+  ): Promise<{
+    batchIxs: Array<web3.TransactionInstruction>;
+    altTables: Array<web3.AddressLookupTableAccount>;
+  }> {
     const batchInstructions: Array<web3.TransactionInstruction> = [];
-    const altTables: Set<web3.AddressLookupTableAccount> = new Set();
+    const altTables: Array<web3.AddressLookupTableAccount> = [];
     for (let i = 1; i <= instructionsCount; i += 1) {
       const res = await multisig.instructions.batchExecuteTransaction({
         connection: this.baseApp.anchorProvider.connection,
@@ -372,16 +455,27 @@ export class SquadsMultisig {
       });
       batchInstructions.push(res.instruction);
       for (const alt of res.lookupTableAccounts) {
-        altTables.add(alt);
+        altTables.push(alt);
       }
     }
+    return { batchIxs: batchInstructions, altTables: altTables };
+  }
+
+  async proposalExecuteMsgV0(
+    index: number,
+    instructionsCount: number,
+  ): Promise<web3.MessageV0> {
+    const batchIxs = await this.proposalExecuteBatchIxs(
+      index,
+      instructionsCount,
+    );
     return new web3.TransactionMessage({
       payerKey: this.baseApp.keypair.publicKey,
       recentBlockhash: (
         await this.baseApp.anchorProvider.connection.getLatestBlockhash()
       ).blockhash,
-      instructions: batchInstructions,
-    }).compileToV0Message([...altTables]);
+      instructions: batchIxs.batchIxs,
+    }).compileToV0Message([...batchIxs.altTables]);
   }
 
   async batchAddByIndexIxV0(
