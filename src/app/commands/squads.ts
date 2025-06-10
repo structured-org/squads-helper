@@ -139,7 +139,7 @@ export function registerSimulateProposalCommand(
       ) {
         let threshold = ms.threshold;
         let i = 0;
-        while (threshold--) {
+        while (i < voters.length && threshold--) {
           const voteIx = SquadsInstructions.proposalApprove({
             multisigPda: squadsMultisig.app.multisigAddress,
             transactionIndex: options.proposalIndex!,
