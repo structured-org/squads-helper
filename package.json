@@ -34,6 +34,7 @@
     "mathjs": "^14.4.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
+    "treeify": "^1.1.0",
     "tsconfig-paths": "^4.2.0",
     "yaml": "^2.7.1"
   },

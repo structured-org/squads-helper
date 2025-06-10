@@ -14,7 +14,12 @@ import {
   RemoveLiquidity2Discriminator,
   RemoveLiquidity2Params,
 } from '@lib/jlp';
-import { getBatchTransactionPda, getTransactionPda } from '@sqds/multisig';
+import {
+  getBatchTransactionPda,
+  getProposalPda,
+  getTransactionPda,
+} from '@sqds/multisig';
+import * as treeify from 'treeify';
 
 BigInt.prototype['toJSON'] = function () {
   return this.toString();
@@ -131,6 +136,9 @@ export function registerCheckProposalCommand(
         multisigPda: squadsMultisig.app.multisigAddress,
         index: options.proposalIndex!,
       });
+      const treeResult = {
+        batch: {},
+      };
       const accountInfo =
         await baseApp.anchorProvider.connection.getAccountInfo(batchPda);
       const batch = Batch.deserialize(accountInfo.data);
@@ -153,7 +161,16 @@ export function registerCheckProposalCommand(
                 const params = AddLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                console.log('add liquidity', JSON.stringify(params, null, 2));
+                treeResult.batch[`ix_${i} AddLiquidity2`] = {};
+                treeResult.batch[`ix_${i} AddLiquidity2`][
+                  `tokenAmountIn: ${params.tokenAmountIn}`
+                ] = {};
+                treeResult.batch[`ix_${i} AddLiquidity2`][
+                  `minLpAmountOut: ${params.minLpAmountOut}`
+                ] = {};
+                treeResult.batch[`ix_${i} AddLiquidity2`][
+                  `tokenAmountPreSwap: ${params.tokenAmountPreSwap}`
+                ] = {};
               }
               break;
             case RemoveLiquidity2Discriminator:
@@ -161,10 +178,13 @@ export function registerCheckProposalCommand(
                 const params = RemoveLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                console.log(
-                  'remove liquidity',
-                  JSON.stringify(params, null, 2),
-                );
+                treeResult.batch[`ix_${i} RemoveLiquidity2`] = {};
+                treeResult.batch[`ix_${i} RemoveLiquidity2`][
+                  `lpAmountIn: ${params.lpAmountIn}`
+                ] = {};
+                treeResult.batch[`ix_${i} RemoveLiquidity2`][
+                  `minAmountOut: ${params.minAmountOut}`
+                ] = {};
               }
               break;
             default: {
@@ -173,5 +193,6 @@ export function registerCheckProposalCommand(
           }
         }
       }
+      console.log(treeify.asTree(treeResult));
     });
 }
