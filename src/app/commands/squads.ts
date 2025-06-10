@@ -117,6 +117,13 @@ export function registerSimulateProposalCommand(
       const proposalPdaAccountInfo =
         await baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
       const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+      let activateProposalIx: undefined | web3.TransactionInstruction =
+        undefined;
+      if (proposal.status === ProposalStatus.Draft) {
+        activateProposalIx = squadsMultisig.proposalActivateByIndexIx(
+          options.proposalIndex!,
+        );
+      }
       const excludedKeys = new Set([
         ...proposal.approved.map((k) => k.toBase58()),
         ...proposal.rejected.map((k) => k.toBase58()),
@@ -151,7 +158,11 @@ export function registerSimulateProposalCommand(
         recentBlockhash: (
           await baseApp.anchorProvider.connection.getLatestBlockhash()
         ).blockhash,
-        instructions: [...voteIxs, ...batchExecuteIxs.batchIxs],
+        instructions: [
+          ...(activateProposalIx ? [activateProposalIx] : []),
+          ...voteIxs,
+          ...batchExecuteIxs.batchIxs,
+        ],
       }).compileToV0Message(batchExecuteIxs.altTables);
       const tx = new web3.VersionedTransaction(txMsgV0);
       const simulationResult =
