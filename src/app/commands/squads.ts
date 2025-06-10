@@ -188,7 +188,7 @@ export function registerCheckProposalCommand(
               }
               break;
             default: {
-              console.log(undefined);
+              treeResult.batch[`ix_${i} undefined`] = {};
             }
           }
         }
