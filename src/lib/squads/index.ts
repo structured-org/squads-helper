@@ -11,6 +11,174 @@ import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
 import { Multisig } from '@sqds/multisig/lib/generated';
 
+export class Batch {
+  multisig: web3.PublicKey;
+  creator: web3.PublicKey;
+  index: bigint; // u64
+  bump: number; // u8
+  vaultIndex: number; // u8
+  vaultBump: number; //u8
+  size: number; // u32
+  executedTransactionIndex: number; // u32
+
+  static deserialize(data: Uint8Array): Batch {
+    const dataView = new DataView(
+      data.buffer,
+      data.byteOffset,
+      data.byteLength,
+    );
+    let offset = 8; // skip discriminator
+
+    const multisig = new web3.PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    const creator = new web3.PublicKey(data.slice(offset, offset + 32));
+    offset += 32;
+
+    const index = dataView.getBigUint64(offset, true); // little-endian
+    offset += 8;
+
+    const bump = dataView.getUint8(offset);
+    offset += 1;
+
+    const vaultIndex = dataView.getUint8(offset);
+    offset += 1;
+
+    const vaultBump = dataView.getUint8(offset);
+    offset += 1;
+
+    const size = dataView.getUint32(offset, true);
+    offset += 4;
+
+    const executedTransactionIndex = dataView.getUint32(offset, true);
+    offset += 4;
+
+    return {
+      multisig,
+      creator,
+      index,
+      bump,
+      vaultIndex,
+      vaultBump,
+      size,
+      executedTransactionIndex,
+    };
+  }
+}
+
+export class VaultTransaction {
+  bump: number; // u8
+  ephemeralSignerBumps: Array<number>; // Vec<u8>
+  message: {
+    numSigners: number;
+    numWritableSigners: number;
+    numWritableNonSigners: number;
+    accountKeys: Array<web3.PublicKey>;
+    instructions: Array<{
+      programIdIndex: number;
+      accountIndexes: Uint8Array;
+      data: Uint8Array;
+    }>;
+    addressTableLookups: Array<{
+      accountKey: web3.PublicKey;
+      writableIndexes: Uint8Array;
+      readonlyIndexes: Uint8Array;
+    }>;
+  };
+
+  static deserialize(data: Uint8Array): VaultTransaction {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8; // skip discriminator
+
+    const bump = view.getUint8(offset);
+    offset += 1;
+
+    // Deserialize ephemeralSignerBumps (Vec<u8>)
+    const bumpsLen = view.getUint32(offset, true);
+    offset += 4;
+    const ephemeralSignerBumps: number[] = [];
+    for (let i = 0; i < bumpsLen; i++) {
+      ephemeralSignerBumps.push(view.getUint8(offset));
+      offset += 1;
+    }
+
+    // numSigners, numWritableSigners, numWritableNonSigners (u8 each)
+    const numSigners = view.getUint8(offset++);
+    const numWritableSigners = view.getUint8(offset++);
+    const numWritableNonSigners = view.getUint8(offset++);
+
+    // Deserialize accountKeys (Vec<Pubkey>)
+    const accKeysLen = view.getUint32(offset, true);
+    offset += 4;
+    const accountKeys: web3.PublicKey[] = [];
+    for (let i = 0; i < accKeysLen; i++) {
+      accountKeys.push(new web3.PublicKey(data.slice(offset, offset + 32)));
+      offset += 32;
+    }
+
+    // Deserialize instructions (Vec)
+    const instrLen = view.getUint32(offset, true);
+    offset += 4;
+    const instructions = [];
+    for (let i = 0; i < instrLen; i++) {
+      const programIdIndex = view.getUint8(offset++);
+
+      const accountIndexesLen = view.getUint32(offset, true);
+      offset += 4;
+      const accountIndexes = data.slice(offset, offset + accountIndexesLen);
+      offset += accountIndexesLen;
+
+      const dataLen = view.getUint32(offset, true);
+      offset += 4;
+      const instrData = data.slice(offset, offset + dataLen);
+      offset += dataLen;
+
+      instructions.push({
+        programIdIndex,
+        accountIndexes,
+        data: instrData,
+      });
+    }
+
+    // Deserialize addressTableLookups (Vec)
+    const tableLookupsLen = view.getUint32(offset, true);
+    offset += 4;
+    const addressTableLookups = [];
+    for (let i = 0; i < tableLookupsLen; i++) {
+      const accountKey = new web3.PublicKey(data.slice(offset, offset + 32));
+      offset += 32;
+
+      const writableLen = view.getUint32(offset, true);
+      offset += 4;
+      const writableIndexes = data.slice(offset, offset + writableLen);
+      offset += writableLen;
+
+      const readonlyLen = view.getUint32(offset, true);
+      offset += 4;
+      const readonlyIndexes = data.slice(offset, offset + readonlyLen);
+      offset += readonlyLen;
+
+      addressTableLookups.push({
+        accountKey,
+        writableIndexes,
+        readonlyIndexes,
+      });
+    }
+    return {
+      bump,
+      ephemeralSignerBumps,
+      message: {
+        numSigners,
+        numWritableSigners,
+        numWritableNonSigners,
+        accountKeys,
+        instructions,
+        addressTableLookups,
+      },
+    };
+  }
+}
+
 export class SquadsMultisig {
   private logger: Logger;
   private squadsMultisigApp: SquadsMultisigApp;
@@ -29,6 +197,8 @@ export class SquadsMultisig {
   get app(): SquadsMultisigApp {
     return this.squadsMultisigApp;
   }
+
+  async getBatch() {}
 
   async getMultisigInfo(): Promise<Multisig> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(

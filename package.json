@@ -11,7 +11,8 @@
     "create-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts create-proposal",
     "activate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts activate-proposal",
     "batch-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts batch-add-liquidity",
-    "execute-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts execute-proposal"
+    "execute-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts execute-proposal",
+    "check-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts check-proposal"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",

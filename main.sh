@@ -1,0 +1,2 @@
+yarn run batch-add-liquidity --amount 100USDC --slippage-tolerance 0.1 --proposal-index 51 --instruction-index 1 && sleep 5
+yarn run batch-add-liquidity --amount 100USDC --slippage-tolerance 0.1 --proposal-index 51 --instruction-index 2

@@ -5,9 +5,10 @@ import {
 } from '@lib/helpers';
 import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
-import { SquadsMultisig } from '@lib/squads';
+import { Batch, SquadsMultisig, VaultTransaction } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { JupiterPerps } from '@lib/jlp';
+import { getBatchTransactionPda, getTransactionPda } from '@sqds/multisig';
 
 export function registerCreateProposalCommand(
   program: Command,
@@ -99,5 +100,42 @@ export function registerExecuteProposalCommand(
         'proposal execution',
         logger,
       );
+    });
+}
+
+export function registerCheckProposalCommand(
+  program: Command,
+  logger: Logger,
+  baseApp: BaseApp,
+  squadsMultisig: SquadsMultisig,
+) {
+  program
+    .command('check-proposal')
+    .description('Execute all the instructions inside of the batch')
+    .requiredOption(
+      '--proposal-index <index>',
+      'What proposal you wish to check',
+    )
+    .action(async (options) => {
+      const [batchPda] = getTransactionPda({
+        multisigPda: squadsMultisig.app.multisigAddress,
+        index: options.proposalIndex!,
+      });
+      const accountInfo =
+        await baseApp.anchorProvider.connection.getAccountInfo(batchPda);
+      const batch = Batch.deserialize(accountInfo.data);
+      for (let i = 1; i <= batch.size; i += 1) {
+        const [transactionPda] = getBatchTransactionPda({
+          multisigPda: squadsMultisig.app.multisigAddress,
+          batchIndex: options.proposalIndex!,
+          transactionIndex: i,
+        });
+        const accountInfo =
+          await baseApp.anchorProvider.connection.getAccountInfo(
+            transactionPda,
+          );
+        const transaction = VaultTransaction.deserialize(accountInfo.data);
+        console.log(JSON.stringify(transaction, null, 2));
+      }
     });
 }

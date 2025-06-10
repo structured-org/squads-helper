@@ -9,6 +9,7 @@ import {
   registerActivateProposalCommand,
   registerExecuteProposalCommand,
   registerCreateProposalCommand,
+  registerCheckProposalCommand,
 } from './commands/squads';
 
 import {
@@ -58,6 +59,7 @@ program
 
 registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerCheckProposalCommand(program, logger, baseApp, squadsMultisig);
 registerExecuteProposalCommand(
   program,
   logger,
