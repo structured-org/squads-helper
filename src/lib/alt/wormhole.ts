@@ -7,6 +7,6 @@ export async function createWormholeAltTablesIfNotExist(
 ) {
   for (const [chainName, wormholeChain] of wormholeApp.chains) {
     const ty = `Wormhole (${chainName})`;
-    await alt.createAndFillAlt(wormholeChain, ty);
+    await alt.createAndFillAltIfNecessary(wormholeChain, ty);
   }
 }

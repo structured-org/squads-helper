@@ -3,6 +3,8 @@ import { Logger } from 'pino';
 import { type BaseApp } from '@config/config';
 import { simulateAndBroadcast } from '@lib/helpers';
 
+type HasAlt = { altAccounts: Array<web3.PublicKey>; altTable?: web3.PublicKey };
+
 export class Alt {
   private logger: Logger;
   private baseApp: BaseApp;
@@ -58,32 +60,48 @@ export class Alt {
     };
   }
 
-  async createAndFillAlt<
-    T extends { accounts: Array<web3.PublicKey>; altTable?: web3.PublicKey },
-  >(instance: T, ty: string) {
+  private async createAndFillAlt<T extends HasAlt>(instance: T, ty: string) {
+    const createTable = await this.createTable(instance.altAccounts);
+    instance.altTable = new web3.PublicKey(
+      createTable.lookupTableAddress.toBase58(),
+    );
+    await simulateAndBroadcast(
+      this.baseApp.anchorProvider,
+      createTable.tx,
+      `${ty} ALT Creation`,
+      this.logger,
+      this.baseApp.keypair,
+    );
+  }
+
+  async createAndFillAltIfNecessary<T extends HasAlt>(instance: T, ty: string) {
     if (instance.altTable === undefined) {
-      const createTable = await this.createTable(instance.accounts);
-      instance.altTable = new web3.PublicKey(
-        createTable.lookupTableAddress.toBase58(),
-      );
-      await simulateAndBroadcast(
-        this.baseApp.anchorProvider,
-        createTable.tx,
-        `${ty} ALT Creation`,
-        this.logger,
-        this.baseApp.keypair,
-      );
+      await this.createAndFillAlt(instance, ty);
     } else {
-      this.logger.info(`${ty} ALT Table Defined -- ${instance.altTable!}`);
       const lookupTableAccount = (
         await this.baseApp.anchorProvider.connection.getAddressLookupTable(
           new web3.PublicKey(instance.altTable!),
         )
       ).value;
+      let expectedAccounts = [...instance.altAccounts];
+      this.logger.info(`${ty} ALT Table Defined -- ${instance.altTable!}`);
+
       for (let i = 1; i <= lookupTableAccount.state.addresses.length; i += 1) {
+        const lookupAddress = lookupTableAccount.state.addresses[i - 1];
         this.logger.info(
-          `ALT Account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupTableAccount.state.addresses[i - 1]}`,
+          `ALT Account ${i}/${lookupTableAccount.state.addresses.length} -- ${lookupAddress}`,
         );
+        expectedAccounts = expectedAccounts.filter(
+          (account) => account.toBase58() !== lookupAddress.toBase58(),
+        );
+      }
+      if (expectedAccounts.length !== 0) {
+        for (const remainingAccount of expectedAccounts) {
+          this.logger.warn(`${ty} ALT missing -- ${remainingAccount}`);
+        }
+        this.logger.info(`${ty} Creating a new ALT`);
+        await this.createAndFillAlt(instance, ty);
+        this.logger.info(`${ty} Using new ALT -- ${instance.altTable!}`);
       }
     }
   }

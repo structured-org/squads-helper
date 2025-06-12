@@ -46,6 +46,44 @@ export async function compileTransactionMessageWithAlt(
   }).compileToV0Message([alt]);
 }
 
+export async function simulateAndBroadcastVersionedTx(
+  provider: AnchorProvider,
+  tx: web3.VersionedTransaction,
+  ty: string,
+  logger: Logger,
+): Promise<web3.TransactionSignature> {
+  logger.info(`Simulating ${ty}`);
+  logger.debug(await provider.connection.simulateTransaction(tx));
+  logger.info(`Simulating ${ty} -- success`);
+  logger.info('Broadcasting transaction');
+  const transactionHash = await provider.connection.sendTransaction(tx, {
+    skipPreflight: true,
+    preflightCommitment: 'confirmed',
+  });
+  logger.info(`Broadcasting transaction -- success ${transactionHash}`);
+  logger.info('Waiting for finalization');
+  let confirmTransactionAttempt = 1;
+  for (; confirmTransactionAttempt <= 3; confirmTransactionAttempt += 1) {
+    try {
+      await confirmTransaction(
+        provider.connection,
+        transactionHash,
+        'finalized',
+      );
+      break;
+    } catch (e) {
+      if (confirmTransactionAttempt === 3) {
+        throw e;
+      }
+      logger.warn(
+        `Failed to await for transaction confirmation -- attempt ${confirmTransactionAttempt}/3`,
+      );
+    }
+  }
+  logger.info('Transaction finalized');
+  return transactionHash;
+}
+
 export async function simulateAndBroadcast(
   provider: AnchorProvider,
   tx: web3.Transaction,
