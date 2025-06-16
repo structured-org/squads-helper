@@ -295,7 +295,7 @@ yarn run batch-add-liquidity --amount 123USDC --slippage-tolerance 0.01 --propos
 
 Notice that `--amount` option is case sensetive and should be used with capital letters. `--slippage-tolerance` is a
 ratio, where `1.0` is 100% and means how many tokens we're okay to loose in case if we provide a significant amount of
-tokens. --proposal-index is the latest proposal index for your multisig. To check this number please look at SQUADs
+tokens. `--proposal-index` is the latest proposal index for your multisig. To check this number please look at SQUADs
 section
 
 ## Remove Liquidity
