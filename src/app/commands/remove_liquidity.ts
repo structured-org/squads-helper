@@ -6,6 +6,7 @@ import { simulateAndBroadcast } from '@lib/helpers';
 import { Logger } from 'pino';
 import { BaseApp } from '@config/config';
 import { Alt, createJupiterPerpsAltTableIfNotExist } from '@lib/alt';
+import { CommandValidator } from '@lib/validator';
 
 export function registerRemoveLiquidityCommand(
   alt: Alt,
@@ -14,6 +15,7 @@ export function registerRemoveLiquidityCommand(
   baseApp: BaseApp,
   jupiterPerps: JupiterPerps,
   multisigProvider: MultisigProvider,
+  commandValidator: CommandValidator,
 ) {
   program
     .command('remove-liquidity')
@@ -34,20 +36,10 @@ export function registerRemoveLiquidityCommand(
     )
     .action(async (options) => {
       await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
-
-      const [, amount, denom] = options.amount.match(
-        /^(\d+(?:\.\d+)?)([A-Z]+)$/,
+      const coin = commandValidator.validateJlpAmount(
+        options.amount,
+        options.denomOut,
       );
-      if (denom !== JLP_DENOM) {
-        logger.error(`--amount: Amount should has a JLP denom -- ${denom}`);
-        process.exit(-1);
-      }
-      if (jupiterPerps.app.coins.get(options.denomOut) === undefined) {
-        logger.error(
-          `--denom-out: Given denom doesn't exist for the given config -- ${options.denomOut}`,
-        );
-        process.exit(-1);
-      }
 
       logger.info(`Remove Liquidity Denom Out ${options.denomOut}`);
       logger.info(`Remove Liquidity Token Amount ${options.amount}`);
@@ -57,11 +49,7 @@ export function registerRemoveLiquidityCommand(
       const tx = await multisigProvider.createRemoveLiquidityProposalTx(
         Number(options.slippageTolerance),
         options.denomOut,
-        {
-          denom: denom,
-          amount: bignumber(amount),
-          precision: JLP_PRECISION,
-        },
+        coin,
       );
       await simulateAndBroadcast(
         baseApp.anchorProvider,

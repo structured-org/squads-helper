@@ -2,6 +2,7 @@ import { Logger } from 'pino';
 import { JupiterPerpsApp } from '@config/config';
 import { Coin } from '@lib/coin';
 import { bignumber } from 'mathjs';
+import { JLP_DENOM, JLP_PRECISION } from '@lib/jlp';
 
 export class CommandValidator {
   logger: Logger;
@@ -24,6 +25,25 @@ export class CommandValidator {
       denom: denom,
       amount: bignumber(amount),
       precision: this.jupiterPerpsApp.coins.get(denom)!.decimals,
+    };
+  }
+
+  validateJlpAmount(inputAsset: string, denomOut: string): Coin {
+    const [, amount, denom] = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
+    if (denom !== JLP_DENOM) {
+      this.logger.error(`--amount: Amount should has a JLP denom -- ${denom}`);
+      process.exit(-1);
+    }
+    if (this.jupiterPerpsApp.coins.get(denomOut) === undefined) {
+      this.logger.error(
+        `--denom-out: Given denom doesn't exist for the given config -- ${denomOut}`,
+      );
+      process.exit(-1);
+    }
+    return {
+      denom: denom,
+      amount: bignumber(amount),
+      precision: JLP_PRECISION,
     };
   }
 }

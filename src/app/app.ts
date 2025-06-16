@@ -86,6 +86,7 @@ registerRemoveLiquidityCommand(
   baseApp,
   jupiterPerps,
   multisigProvider,
+  commandValidator,
 );
 registerWormholeEthereumCommand(
   alt,
