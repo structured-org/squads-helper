@@ -35,18 +35,16 @@ export function registerBatchAddLiquidityCommand(
       '--proposal-index <index>',
       'Proposal index where to add given instruction. Proposal should exist but should not be activated yet',
     )
-    .requiredOption(
-      '--instruction-index <index>',
-      'Every instruction should have the index, starting with 1',
-    )
     .action(async (options) => {
       await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
       const coin = commandValidator.validateAmount(options.amount);
+      const batch = await squadsMultisig.getBatch(options.proposalIndex!);
 
       logger.info(`Provide Liquidity Amount -- ${options.amount}`);
       logger.info(
         `Provide Liquidity Slippage Tolerance -- ${options.slippageTolerance}`,
       );
+      logger.info(`Batch Transaction Index -- ${batch.size + 1}`);
       const addLiquidityIx = await jupiterPerps.relativeAddLiquidityIx(
         squadsMultisig.app.vaultPda,
         coin,
@@ -59,7 +57,7 @@ export function registerBatchAddLiquidityCommand(
       ).value;
       const batchAddLiquidityIx = await squadsMultisig.batchAddByIndexIxV0(
         options.proposalIndex!,
-        options.instructionIndex!,
+        batch.size + 1,
         addLiquidityIx,
         altData,
       );

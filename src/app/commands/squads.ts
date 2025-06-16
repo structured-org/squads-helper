@@ -98,10 +98,6 @@ export function registerSimulateProposalCommand(
       '--proposal-index <index>',
       'What proposal you wish to execute. This values can be usually taken from the logs of create-proposal',
     )
-    .requiredOption(
-      '--instructions-count <index>',
-      'Amount of instructions inside of the batch we need to simulate in a row',
-    )
     .action(async (options) => {
       const ms = await squadsMultisig.getMultisig();
       const proposal = await squadsMultisig.getProposal(options.proposalIndex!);
@@ -143,9 +139,11 @@ export function registerSimulateProposalCommand(
       }
 
       // Execute all transactions from the batch at once
+      const batch = await squadsMultisig.getBatch(options.proposalIndex!);
+      const batchSize = batch.size;
       const batchExecuteIxs = await squadsMultisig.proposalExecuteBatchIxs(
         options.proposalIndex!,
-        options.instructionsCount!,
+        batchSize,
       );
       const txMsgV0 = new web3.TransactionMessage({
         payerKey: baseApp.keypair.publicKey,
@@ -178,14 +176,11 @@ export function registerExecuteProposalCommand(
       '--proposal-index <index>',
       'What proposal you wish to execute. This values can be usually taken from the logs of create-proposal',
     )
-    .requiredOption(
-      '--instructions-count <index>',
-      'Amount of instructions inside of the batch we need to execute in a row',
-    )
     .action(async (options) => {
+      const batch = await squadsMultisig.getBatch(options.proposalIndex!);
       const executeProposalMsg = await squadsMultisig.proposalExecuteMsgV0(
         options.proposalIndex!,
-        options.instructionsCount!,
+        batch.size,
       );
       const tx = new web3.VersionedTransaction(executeProposalMsg);
       tx.sign([baseApp.keypair]);
