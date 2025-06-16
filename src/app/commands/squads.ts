@@ -6,13 +6,9 @@ import {
 import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import {
-  Batch,
-  Ms,
-  Proposal,
   ProposalStatus,
   proposalStatusToString,
   SquadsMultisig,
-  VaultTransaction,
 } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import {
@@ -21,12 +17,7 @@ import {
   RemoveLiquidity2Discriminator,
   RemoveLiquidity2Params,
 } from '@lib/jlp';
-import {
-  getBatchTransactionPda,
-  getProposalPda,
-  getTransactionPda,
-  instructions as SquadsInstructions,
-} from '@sqds/multisig';
+import { instructions as SquadsInstructions } from '@sqds/multisig';
 import * as treeify from 'treeify';
 
 BigInt.prototype['toJSON'] = function () {
