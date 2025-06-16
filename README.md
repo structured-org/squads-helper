@@ -259,6 +259,16 @@ yarn run check-proposal --proposal-index 60
 This instruction will print out the content of the proposal. As for now it can only show AddLiquidity2 and
 RemoveLiquidity2 instructions for Jupiter
 
+### Check Multisig
+
+Example of how to run the script:
+
+```bash
+yarn run show-multisig
+```
+
+This instruction will print out the multisig information. `transactionIndex` is a number of the latest proposal
+
 ### Execute Proposal
 
 Example of how to run the script:
