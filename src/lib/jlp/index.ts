@@ -10,6 +10,67 @@ import { web3, Program, BN } from '@project-serum/anchor';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { AccountMeta } from '@solana/web3.js';
 
+export const AddLiquidity2Discriminator = JSON.stringify([
+  228, 162, 78, 28, 70, 219, 116, 115,
+]);
+
+export const RemoveLiquidity2Discriminator = JSON.stringify([
+  230, 215, 82, 127, 241, 101, 227, 146,
+]);
+
+export class AddLiquidity2Params {
+  tokenAmountIn: bigint;
+  minLpAmountOut: bigint;
+  tokenAmountPreSwap: null | bigint;
+
+  static deserialize(data: Uint8Array): AddLiquidity2Params {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8;
+
+    const tokenAmountIn = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const minLpAmountOut = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const hasTokenAmountPreSwap = view.getUint8(offset);
+    offset += 1;
+
+    let tokenAmountPreSwap: bigint | null = null;
+    if (hasTokenAmountPreSwap === 1) {
+      tokenAmountPreSwap = view.getBigUint64(offset, true);
+      offset += 8;
+    }
+
+    return {
+      tokenAmountIn,
+      minLpAmountOut,
+      tokenAmountPreSwap,
+    };
+  }
+}
+
+export class RemoveLiquidity2Params {
+  lpAmountIn: bigint;
+  minAmountOut: bigint;
+
+  static deserialize(data: Uint8Array): RemoveLiquidity2Params {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let offset = 8;
+
+    const lpAmountIn = view.getBigUint64(offset, true);
+    offset += 8;
+
+    const minAmountOut = view.getBigUint64(offset, true);
+    offset += 8;
+
+    return {
+      lpAmountIn,
+      minAmountOut,
+    };
+  }
+}
+
 type PoolAum = {
   WSOL: BigNumber;
   WETH: BigNumber;
@@ -57,7 +118,7 @@ export class JupiterPerps {
         pool: this.jupiterPerpsApp.pool,
       })
       .remainingAccounts(
-        this.jupiterPerpsApp.accounts.map((account) => ({
+        this.jupiterPerpsApp.remainingAccounts.map((account) => ({
           pubkey: new web3.PublicKey(account),
           isWritable: false,
           isSigner: false,
@@ -180,13 +241,12 @@ export class JupiterPerps {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
-      (account) => ({
+    const remainingAccounts: AccountMeta[] =
+      this.jupiterPerpsApp.remainingAccounts.map((account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }),
-    );
+      }));
     const params = {
       lpAmountIn: new BN(lpIn.amount.toString()),
       minAmountOut: new BN(minAmountTokenOut.toString()),
@@ -240,23 +300,6 @@ export class JupiterPerps {
     );
   }
 
-  async absoluteRemoveLiquidityIx(
-    provider: web3.PublicKey,
-    lpIn: Coin,
-    denomOut: string,
-    absoluteSlippageTolerance: number,
-  ): Promise<web3.TransactionInstruction> {
-    const outputCoin = this.jupiterPerpsApp.coins.get(denomOut)!;
-    this.logger.info(`lpAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(`minAmountOut -- ${absoluteSlippageTolerance.toString()}`);
-    return await this.removeLiquidityIx(
-      provider,
-      lpIn,
-      outputCoin,
-      bignumber(absoluteSlippageTolerance),
-    );
-  }
-
   async addLiquidityIx(
     provider: web3.PublicKey,
     coin: Coin,
@@ -283,13 +326,12 @@ export class JupiterPerps {
         true,
       ).toBase58(),
     );
-    const remainingAccounts: AccountMeta[] = this.jupiterPerpsApp.accounts.map(
-      (account) => ({
+    const remainingAccounts: AccountMeta[] =
+      this.jupiterPerpsApp.remainingAccounts.map((account) => ({
         pubkey: new web3.PublicKey(account),
         isWritable: false,
         isSigner: false,
-      }),
-    );
+      }));
     const params = {
       tokenAmountIn: new BN(coin.amount.toString()),
       minLpAmountOut: new BN(minLpTokenAmount.toString()),
@@ -334,21 +376,5 @@ export class JupiterPerps {
     this.logger.info(`tokenAmountIn -- ${coin.amount.toString()}`);
     this.logger.info(`minLpTokenAmount -- ${minLpTokenAmount.toString()}`);
     return await this.addLiquidityIx(provider, coin, minLpTokenAmount);
-  }
-
-  async absoluteAddLiquidityIx(
-    provider: web3.PublicKey,
-    lpIn: Coin,
-    absoluteSlippageTolerance: number,
-  ): Promise<web3.TransactionInstruction> {
-    this.logger.info(`tokenAmountIn -- ${lpIn.amount.toString()}`);
-    this.logger.info(
-      `minLpTokenAmount -- ${absoluteSlippageTolerance.toString()}`,
-    );
-    return await this.addLiquidityIx(
-      provider,
-      lpIn,
-      bignumber(absoluteSlippageTolerance),
-    );
   }
 }

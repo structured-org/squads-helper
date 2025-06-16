@@ -8,8 +8,13 @@
     "wormhole-ethereum": "node -r ts-node/register --env-file=./.env src/app/app.ts wormhole-ethereum",
     "add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts add-liquidity",
     "remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts remove-liquidity",
-    "absolute-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-add-liquidity",
-    "absolute-remove-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts absolute-remove-liquidity"
+    "create-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts create-proposal",
+    "activate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts activate-proposal",
+    "batch-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts batch-add-liquidity",
+    "execute-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts execute-proposal",
+    "check-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts check-proposal",
+    "simulate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts simulate-proposal",
+    "show-multisig": "node -r ts-node/register --env-file=./.env src/app/app.ts show-multisig"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",
@@ -31,6 +36,7 @@
     "mathjs": "^14.4.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
+    "treeify": "^1.1.0",
     "tsconfig-paths": "^4.2.0",
     "yaml": "^2.7.1"
   },

@@ -1,10 +1,19 @@
 import { Command } from 'commander';
-import { registerWormholeEthereumCommand } from './commands/wormhole_ethereum';
-import { registerAddLiquidityCommand } from './commands/add_liquidity';
+import { registerWormholeEthereumCommand } from './commands/wormhole';
+import {
+  registerAddLiquidityCommand,
+  registerBatchAddLiquidityCommand,
+} from './commands/add_liquidity';
 import { registerRemoveLiquidityCommand } from './commands/remove_liquidity';
-import { registerAbsoluteAddLiquidityCommand } from './commands/absolte_add_liquidity';
-import { registerAbsoluteRemoveLiquidityCommand } from './commands/absolute_remove_liquidity';
-
+import {
+  registerActivateProposalCommand,
+  registerExecuteProposalCommand,
+  registerCreateProposalCommand,
+  registerCheckProposalCommand,
+  registerSimulateProposalCommand,
+  registerShowMultisigCommand,
+} from './commands/squads';
+import { CommandValidator } from '@lib/validator';
 import {
   getBaseApp,
   parseConfig,
@@ -16,11 +25,7 @@ import { SquadsMultisig } from '@lib/squads';
 import { getLogger } from '@lib/logger';
 import { JupiterPerps } from '@lib/jlp';
 import { WormholeEthereum } from '@lib/wormhole';
-import {
-  Alt,
-  createJupiterPerpsAltTableIfNotExist,
-  createWormholeAltTablesIfNotExist,
-} from '@lib/alt';
+import { Alt } from '@lib/alt';
 import { MultisigProvider } from '@lib/multisig_provider';
 
 const logger = getLogger();
@@ -30,6 +35,8 @@ const baseApp = getBaseApp();
 const jupiterPerpsApp = getJupiterPerpsAppFromConfig(config);
 const squadsMultisigApp = getSquadsMultisigAppFromConfig(config);
 const wormholeApp = getWormholeAppfromConfig(config);
+
+const commandValidator = new CommandValidator(logger, jupiterPerpsApp);
 
 const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
 const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
@@ -50,35 +57,41 @@ program
   .description('CLI to operate a SQUADS multisig with different messages')
   .version('1.1.0');
 
+registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerExecuteProposalCommand(program, logger, baseApp, squadsMultisig);
+registerSimulateProposalCommand(program, baseApp, squadsMultisig);
+registerCheckProposalCommand(program, squadsMultisig);
+registerShowMultisigCommand(program, squadsMultisig);
+registerBatchAddLiquidityCommand(
+  alt,
+  program,
+  logger,
+  baseApp,
+  jupiterPerps,
+  squadsMultisig,
+  commandValidator,
+);
 registerAddLiquidityCommand(
+  alt,
   program,
   logger,
   baseApp,
   jupiterPerps,
   multisigProvider,
+  commandValidator,
 );
 registerRemoveLiquidityCommand(
+  alt,
   program,
   logger,
   baseApp,
   jupiterPerps,
   multisigProvider,
-);
-registerAbsoluteAddLiquidityCommand(
-  program,
-  logger,
-  baseApp,
-  jupiterPerps,
-  multisigProvider,
-);
-registerAbsoluteRemoveLiquidityCommand(
-  program,
-  logger,
-  baseApp,
-  jupiterPerps,
-  multisigProvider,
+  commandValidator,
 );
 registerWormholeEthereumCommand(
+  alt,
   program,
   logger,
   baseApp,
@@ -86,10 +99,7 @@ registerWormholeEthereumCommand(
   multisigProvider,
 );
 
-async function main() {
-  await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerpsApp);
-  await createWormholeAltTablesIfNotExist(alt, wormholeApp);
-
+function main() {
   program.parse();
 }
 

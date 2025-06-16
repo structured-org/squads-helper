@@ -73,26 +73,6 @@ export class MultisigProvider {
     );
   }
 
-  async createAddLiquidityAbsoluteProposalTx(
-    absoluteSlippageTolerance: number,
-    coin: Coin,
-  ): Promise<web3.Transaction> {
-    const absoluteAddLiquidityIx =
-      await this.jupiterPerps.absoluteAddLiquidityIx(
-        this.squadsMultisig.app.vaultPda,
-        {
-          denom: coin.denom,
-          amount: bignumber(coin.amount),
-          precision: coin.precision,
-        },
-        absoluteSlippageTolerance,
-      );
-    return await this.createProposalTx(
-      absoluteAddLiquidityIx,
-      this.jupiterPerps.app.altTable,
-    );
-  }
-
   async createRemoveLiquidityProposalTx(
     slippageTolerance: number,
     denomOut: string,
@@ -114,32 +94,6 @@ export class MultisigProvider {
     );
     return await this.createProposalTx(
       removeLiquidityIx,
-      this.jupiterPerps.app.altTable,
-    );
-  }
-
-  async createRemoveLiquidityAbsoluteProposalTx(
-    absoluteSlippageTolerance: number,
-    denomOut: string,
-    coin: Coin,
-  ): Promise<web3.Transaction> {
-    if (coin.denom !== JLP_DENOM) {
-      throw `Given denom doesn't equal ${JLP_DENOM}`;
-    }
-
-    const absoluteRemoveLiquidityIx =
-      await this.jupiterPerps.absoluteRemoveLiquidityIx(
-        this.squadsMultisig.app.vaultPda,
-        {
-          denom: coin.denom,
-          amount: bignumber(coin.amount),
-          precision: coin.precision,
-        },
-        denomOut,
-        absoluteSlippageTolerance,
-      );
-    return await this.createProposalTx(
-      absoluteRemoveLiquidityIx,
       this.jupiterPerps.app.altTable,
     );
   }

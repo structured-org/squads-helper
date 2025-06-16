@@ -6,5 +6,5 @@ export async function createJupiterPerpsAltTableIfNotExist(
   jupiterPerpsApp: JupiterPerpsApp,
 ) {
   const ty = 'Jupiter Perps';
-  await alt.createAndFillAlt(jupiterPerpsApp, ty);
+  await alt.createAndFillAltIfNecessary(jupiterPerpsApp, ty);
 }
