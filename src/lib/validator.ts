@@ -14,7 +14,12 @@ export class CommandValidator {
   }
 
   validateAmount(inputAsset: string): Coin {
-    const [, amount, denom] = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
+    const tokens = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
+    if (tokens.length === 0) {
+      throw new Error(`--amount: Invalid format provided -- ${inputAsset}`);
+    }
+
+    const [, amount, denom] = tokens;
     if (this.jupiterPerpsApp.coins.get(denom) === undefined) {
       this.logger.error(
         `--amount: No such a coin described in the config -- ${denom}`,
@@ -29,7 +34,12 @@ export class CommandValidator {
   }
 
   validateJlpAmount(inputAsset: string, denomOut: string): Coin {
-    const [, amount, denom] = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
+    const tokens = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
+    if (tokens.length === 0) {
+      throw new Error(`--amount: Invalid format provided -- ${inputAsset}`);
+    }
+
+    const [, amount, denom] = tokens;
     if (denom !== JLP_DENOM) {
       this.logger.error(`--amount: Amount should have a JLP denom -- ${denom}`);
       process.exit(-1);
