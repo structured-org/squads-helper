@@ -10,7 +10,11 @@ import {
 import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
 import { Multisig } from '@sqds/multisig/lib/generated';
-import { getProposalPda } from '@sqds/multisig';
+import {
+  getBatchTransactionPda,
+  getProposalPda,
+  getTransactionPda,
+} from '@sqds/multisig';
 
 export class Ms {
   createKey: web3.PublicKey;
@@ -383,8 +387,6 @@ export class SquadsMultisig {
     return this.squadsMultisigApp;
   }
 
-  async getBatch() {}
-
   async getMultisigInfo(): Promise<Multisig> {
     const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
       this.baseApp.anchorProvider.connection,
@@ -402,6 +404,17 @@ export class SquadsMultisig {
     return ms;
   }
 
+  async getBatch(proposalIndex: number): Promise<Batch> {
+    const [batchPda] = getTransactionPda({
+      multisigPda: this.squadsMultisigApp.multisigAddress,
+      index: BigInt(proposalIndex),
+    });
+    const batchPdaAccountInfo =
+      await this.baseApp.anchorProvider.connection.getAccountInfo(batchPda);
+    const batch = Batch.deserialize(batchPdaAccountInfo.data);
+    return batch;
+  }
+
   async getProposal(proposalIndex: number): Promise<Proposal> {
     const [proposalPda] = getProposalPda({
       multisigPda: this.squadsMultisigApp.multisigAddress,
@@ -411,6 +424,27 @@ export class SquadsMultisig {
       await this.baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
     const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
     return proposal;
+  }
+
+  async getTransactions(
+    proposalIndex: number,
+  ): Promise<Array<VaultTransaction>> {
+    const batch = await this.getBatch(proposalIndex);
+    const vaultTxs = [];
+    for (let i = 1; i <= batch.size; i += 1) {
+      const [transactionPda] = getBatchTransactionPda({
+        multisigPda: this.squadsMultisigApp.multisigAddress,
+        batchIndex: BigInt(proposalIndex),
+        transactionIndex: i,
+      });
+      const accountInfo =
+        await this.baseApp.anchorProvider.connection.getAccountInfo(
+          transactionPda,
+        );
+      const transaction = VaultTransaction.deserialize(accountInfo.data);
+      vaultTxs.push(transaction);
+    }
+    return vaultTxs;
   }
 
   async createProposalIx(): Promise<web3.TransactionInstruction> {

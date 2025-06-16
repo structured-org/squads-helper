@@ -201,8 +201,6 @@ export function registerExecuteProposalCommand(
 
 export function registerCheckProposalCommand(
   program: Command,
-  logger: Logger,
-  baseApp: BaseApp,
   squadsMultisig: SquadsMultisig,
 ) {
   program
@@ -213,29 +211,15 @@ export function registerCheckProposalCommand(
       'What proposal you wish to check',
     )
     .action(async (options) => {
-      const [batchPda] = getTransactionPda({
-        multisigPda: squadsMultisig.app.multisigAddress,
-        index: options.proposalIndex!,
-      });
-      const batchPdaAccountInfo =
-        await baseApp.anchorProvider.connection.getAccountInfo(batchPda);
-      const batch = Batch.deserialize(batchPdaAccountInfo.data);
       const treeResult = {
         proposal: {
           batch: {},
         },
       };
-      for (let i = 1; i <= batch.size; i += 1) {
-        const [transactionPda] = getBatchTransactionPda({
-          multisigPda: squadsMultisig.app.multisigAddress,
-          batchIndex: options.proposalIndex!,
-          transactionIndex: i,
-        });
-        const accountInfo =
-          await baseApp.anchorProvider.connection.getAccountInfo(
-            transactionPda,
-          );
-        const transaction = VaultTransaction.deserialize(accountInfo.data);
+      const vaultTxs = await squadsMultisig.getTransactions(
+        options.proposalIndex!,
+      );
+      for (const [i, transaction] of vaultTxs.entries()) {
         for (const instruction of transaction.message.instructions) {
           const method = instruction.data.subarray(0, 8);
           switch (JSON.stringify(Array.from(method))) {
@@ -244,14 +228,14 @@ export function registerCheckProposalCommand(
                 const params = AddLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                treeResult.proposal.batch[`ix_${i} AddLiquidity2`] = {};
-                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i + 1} AddLiquidity2`] = {};
+                treeResult.proposal.batch[`ix_${i + 1} AddLiquidity2`][
                   `tokenAmountIn: ${params.tokenAmountIn}`
                 ] = {};
-                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i + 1} AddLiquidity2`][
                   `minLpAmountOut: ${params.minLpAmountOut}`
                 ] = {};
-                treeResult.proposal.batch[`ix_${i} AddLiquidity2`][
+                treeResult.proposal.batch[`ix_${i + 1} AddLiquidity2`][
                   `tokenAmountPreSwap: ${params.tokenAmountPreSwap}`
                 ] = {};
               }
@@ -261,28 +245,22 @@ export function registerCheckProposalCommand(
                 const params = RemoveLiquidity2Params.deserialize(
                   instruction.data,
                 );
-                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`] = {};
-                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`][
+                treeResult.proposal.batch[`ix_${i + 1} RemoveLiquidity2`] = {};
+                treeResult.proposal.batch[`ix_${i + 1} RemoveLiquidity2`][
                   `lpAmountIn: ${params.lpAmountIn}`
                 ] = {};
-                treeResult.proposal.batch[`ix_${i} RemoveLiquidity2`][
+                treeResult.proposal.batch[`ix_${i + 1} RemoveLiquidity2`][
                   `minAmountOut: ${params.minAmountOut}`
                 ] = {};
               }
               break;
             default: {
-              treeResult.proposal.batch[`ix_${i} undefined`] = {};
+              treeResult.proposal.batch[`ix_${i + 1} undefined`] = {};
             }
           }
         }
       }
-      const [proposalPda] = getProposalPda({
-        multisigPda: squadsMultisig.app.multisigAddress,
-        transactionIndex: options.proposalIndex!,
-      });
-      const proposalPdaAccountInfo =
-        await baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
-      const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+      const proposal = await squadsMultisig.getProposal(options.proposalIndex!);
       treeResult[`proposal (${proposalStatusToString(proposal.status)})`] =
         treeResult.proposal;
       delete treeResult.proposal;
