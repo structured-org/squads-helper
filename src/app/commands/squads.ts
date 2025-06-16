@@ -150,7 +150,11 @@ export function registerSimulateProposalCommand(
       const tx = new web3.VersionedTransaction(txMsgV0);
       const simulationResult =
         await baseApp.anchorProvider.connection.simulateTransaction(tx);
-      console.dir(simulationResult, { maxArrayLength: null });
+      if (simulationResult.value.err === null) {
+        console.dir(simulationResult, { maxArrayLength: null });
+      } else {
+        throw new Error(JSON.stringify(simulationResult, null, 2));
+      }
     });
 }
 

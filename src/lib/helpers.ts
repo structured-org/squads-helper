@@ -53,7 +53,14 @@ export async function simulateAndBroadcastVersionedTx(
   logger: Logger,
 ): Promise<web3.TransactionSignature> {
   logger.info(`Simulating ${ty}`);
-  logger.debug(await provider.connection.simulateTransaction(tx));
+
+  const simulationResult = await provider.connection.simulateTransaction(tx);
+  logger.debug(simulationResult);
+  if (simulationResult.value.err !== null) {
+    logger.error(`Simulating ${ty} -- failure`);
+    throw new Error(`${JSON.stringify(simulationResult, null, 2)}`);
+  }
+
   logger.info(`Simulating ${ty} -- success`);
   logger.info('Broadcasting transaction');
   const transactionHash = await provider.connection.sendTransaction(tx, {
