@@ -75,7 +75,7 @@ export type WormholeChain = {
   tokenBridge: web3.PublicKey;
   coreBridge: web3.PublicKey;
   altAccounts: Array<web3.PublicKey>;
-  remaningAccounts: Array<web3.PublicKey>;
+  remainingAccounts: Array<web3.PublicKey>;
 };
 
 export type WormholeToken = {
@@ -185,7 +185,7 @@ export function getWormholeAppfromConfig(config: ConfigFile): WormholeApp {
           tokenBridgeRelayer: new web3.PublicKey(chain.token_bridge_relayer),
           tokenBridge: new web3.PublicKey(chain.token_bridge),
           coreBridge: new web3.PublicKey(chain.core_bridge),
-          remaningAccounts: chain.remaining_accounts.map(
+          remainingAccounts: chain.remaining_accounts.map(
             (account) => new web3.PublicKey(account),
           ),
           altAccounts: chain.alt_accounts.map(
