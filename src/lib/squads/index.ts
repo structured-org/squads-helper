@@ -10,6 +10,7 @@ import {
 import { type BaseApp, type SquadsMultisigApp } from '@config/config';
 import { Logger } from 'pino';
 import { Multisig } from '@sqds/multisig/lib/generated';
+import { getProposalPda } from '@sqds/multisig';
 
 export class Ms {
   createKey: web3.PublicKey;
@@ -390,6 +391,26 @@ export class SquadsMultisig {
       this.squadsMultisigApp.multisigAddress,
     );
     return multisigInfo;
+  }
+
+  async getMultisig(): Promise<Ms> {
+    const msPdaAccountInfo =
+      await this.baseApp.anchorProvider.connection.getAccountInfo(
+        this.squadsMultisigApp.multisigAddress,
+      );
+    const ms = Ms.deserialize(msPdaAccountInfo.data);
+    return ms;
+  }
+
+  async getProposal(proposalIndex: number): Promise<Proposal> {
+    const [proposalPda] = getProposalPda({
+      multisigPda: this.squadsMultisigApp.multisigAddress,
+      transactionIndex: BigInt(proposalIndex),
+    });
+    const proposalPdaAccountInfo =
+      await this.baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
+    const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+    return proposal;
   }
 
   async createProposalIx(): Promise<web3.TransactionInstruction> {

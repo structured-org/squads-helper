@@ -60,7 +60,7 @@ registerActivateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerCheckProposalCommand(program, logger, baseApp, squadsMultisig);
 registerExecuteProposalCommand(program, logger, baseApp, squadsMultisig);
-registerSimulateProposalCommand(program, logger, baseApp, squadsMultisig);
+registerSimulateProposalCommand(program, baseApp, squadsMultisig);
 registerBatchAddLiquidityCommand(
   alt,
   program,

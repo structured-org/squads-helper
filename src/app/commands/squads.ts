@@ -88,7 +88,6 @@ export function registerActivateProposalCommand(
 
 export function registerSimulateProposalCommand(
   program: Command,
-  logger: Logger,
   baseApp: BaseApp,
   squadsMultisig: SquadsMultisig,
 ) {
@@ -104,19 +103,10 @@ export function registerSimulateProposalCommand(
       'Amount of instructions inside of the batch we need to simulate in a row',
     )
     .action(async (options) => {
-      const msPdaAccountInfo =
-        await baseApp.anchorProvider.connection.getAccountInfo(
-          squadsMultisig.app.multisigAddress,
-        );
-      const ms = Ms.deserialize(msPdaAccountInfo.data);
+      const ms = await squadsMultisig.getMultisig();
+      const proposal = await squadsMultisig.getProposal(options.proposalIndex!);
 
-      const [proposalPda] = getProposalPda({
-        multisigPda: squadsMultisig.app.multisigAddress,
-        transactionIndex: options.proposalIndex!,
-      });
-      const proposalPdaAccountInfo =
-        await baseApp.anchorProvider.connection.getAccountInfo(proposalPda);
-      const proposal = Proposal.deserialize(proposalPdaAccountInfo.data);
+      // Activate proposal if it's a Draft
       let activateProposalIx: undefined | web3.TransactionInstruction =
         undefined;
       if (proposal.status === ProposalStatus.Draft) {
@@ -124,6 +114,8 @@ export function registerSimulateProposalCommand(
           options.proposalIndex!,
         );
       }
+
+      // Vote for it to make it Approved. Skip those who voted
       const excludedKeys = new Set([
         ...proposal.approved.map((k) => k.toBase58()),
         ...proposal.rejected.map((k) => k.toBase58()),
@@ -149,6 +141,8 @@ export function registerSimulateProposalCommand(
           i += 1;
         }
       }
+
+      // Execute all transactions from the batch at once
       const batchExecuteIxs = await squadsMultisig.proposalExecuteBatchIxs(
         options.proposalIndex!,
         options.instructionsCount!,
