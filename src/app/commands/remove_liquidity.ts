@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { JupiterPerps } from '@lib/jlp';
 import { MultisigProvider } from '@lib/multisig_provider';
 import { simulateAndBroadcast } from '@lib/helpers';
 import { Logger } from 'pino';
