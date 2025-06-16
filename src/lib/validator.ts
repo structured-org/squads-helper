@@ -31,7 +31,7 @@ export class CommandValidator {
   validateJlpAmount(inputAsset: string, denomOut: string): Coin {
     const [, amount, denom] = inputAsset.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/);
     if (denom !== JLP_DENOM) {
-      this.logger.error(`--amount: Amount should has a JLP denom -- ${denom}`);
+      this.logger.error(`--amount: Amount should have a JLP denom -- ${denom}`);
       process.exit(-1);
     }
     if (this.jupiterPerpsApp.coins.get(denomOut) === undefined) {
