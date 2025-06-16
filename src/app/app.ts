@@ -11,6 +11,7 @@ import {
   registerCreateProposalCommand,
   registerCheckProposalCommand,
   registerSimulateProposalCommand,
+  registerShowMultisigCommand,
 } from './commands/squads';
 import { CommandValidator } from '@lib/validator';
 import {
@@ -61,6 +62,7 @@ registerCreateProposalCommand(program, logger, baseApp, squadsMultisig);
 registerExecuteProposalCommand(program, logger, baseApp, squadsMultisig);
 registerSimulateProposalCommand(program, baseApp, squadsMultisig);
 registerCheckProposalCommand(program, squadsMultisig);
+registerShowMultisigCommand(program, squadsMultisig);
 registerBatchAddLiquidityCommand(
   alt,
   program,

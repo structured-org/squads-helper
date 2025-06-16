@@ -185,6 +185,27 @@ export function registerExecuteProposalCommand(
     });
 }
 
+export function registerShowMultisigCommand(
+  program: Command,
+  squadsMultisig: SquadsMultisig,
+) {
+  program
+    .command('show-multisig')
+    .description('Show the multisig information')
+    .action(async () => {
+      const multisig = await squadsMultisig.getMultisig();
+      console.log({
+        ...multisig,
+        createKey: multisig.createKey.toBase58(),
+        configAuthority: multisig.configAuthority.toBase58(),
+        members: multisig.members.map((member) => ({
+          key: member.key.toBase58(),
+          mask: member.permissions.mask,
+        })),
+      });
+    });
+}
+
 export function registerCheckProposalCommand(
   program: Command,
   squadsMultisig: SquadsMultisig,

@@ -13,7 +13,8 @@
     "batch-add-liquidity": "node -r ts-node/register --env-file=./.env src/app/app.ts batch-add-liquidity",
     "execute-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts execute-proposal",
     "check-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts check-proposal",
-    "simulate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts simulate-proposal"
+    "simulate-proposal": "node -r ts-node/register --env-file=./.env src/app/app.ts simulate-proposal",
+    "show-multisig": "node -r ts-node/register --env-file=./.env src/app/app.ts show-multisig"
   },
   "dependencies": {
     "@jup-ag/api": "^6.0.12",
