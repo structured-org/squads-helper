@@ -2,12 +2,12 @@ import { Command } from 'commander';
 import { JupiterPerps } from '@lib/jlp';
 import { simulateAndBroadcast } from '@lib/helpers';
 import { MultisigProvider } from '@lib/multisig_provider';
-import { bignumber } from 'mathjs';
 import { BaseApp } from '@config/config';
 import { Logger } from 'pino';
 import { SquadsMultisig } from '@lib/squads';
 import { web3 } from '@project-serum/anchor';
 import { Alt, createJupiterPerpsAltTableIfNotExist } from '@lib/alt';
+import { CommandValidator } from '@lib/validator';
 
 export function registerBatchAddLiquidityCommand(
   alt: Alt,
@@ -16,6 +16,7 @@ export function registerBatchAddLiquidityCommand(
   baseApp: BaseApp,
   jupiterPerps: JupiterPerps,
   squadsMultisig: SquadsMultisig,
+  commandValidator: CommandValidator,
 ) {
   program
     .command('batch-add-liquidity')
@@ -40,16 +41,7 @@ export function registerBatchAddLiquidityCommand(
     )
     .action(async (options) => {
       await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
-
-      const [, amount, denom] = options.amount.match(
-        /^(\d+(?:\.\d+)?)([A-Z]+)$/,
-      );
-      if (jupiterPerps.app.coins.get(denom) === undefined) {
-        logger.error(
-          `--amount: No such a coin described in the config -- ${denom}`,
-        );
-        process.exit(-1);
-      }
+      const coin = commandValidator.validateAmount(options.amount);
 
       logger.info(`Provide Liquidity Amount -- ${options.amount}`);
       logger.info(
@@ -57,11 +49,7 @@ export function registerBatchAddLiquidityCommand(
       );
       const addLiquidityIx = await jupiterPerps.relativeAddLiquidityIx(
         squadsMultisig.app.vaultPda,
-        {
-          denom: denom,
-          amount: amount,
-          precision: jupiterPerps.app.coins.get(denom)!.decimals,
-        },
+        coin,
         Number(options.slippageTolerance),
       );
       const altData = (
@@ -93,6 +81,7 @@ export function registerAddLiquidityCommand(
   baseApp: BaseApp,
   jupiterPerps: JupiterPerps,
   multisigProvider: MultisigProvider,
+  commandValidator: CommandValidator,
 ) {
   program
     .command('add-liquidity')
@@ -109,16 +98,7 @@ export function registerAddLiquidityCommand(
     )
     .action(async (options) => {
       await createJupiterPerpsAltTableIfNotExist(alt, jupiterPerps.app);
-
-      const [, amount, denom] = options.amount.match(
-        /^(\d+(?:\.\d+)?)([A-Z]+)$/,
-      );
-      if (jupiterPerps.app.coins.get(denom) === undefined) {
-        logger.error(
-          `--amount: No such a coin described in the config -- ${denom}`,
-        );
-        process.exit(-1);
-      }
+      const coin = commandValidator.validateAmount(options.amount);
 
       logger.info(`Provide Liquidity Amount -- ${options.amount}`);
       logger.info(
@@ -126,11 +106,7 @@ export function registerAddLiquidityCommand(
       );
       const tx = await multisigProvider.createAddLiquidityProposalTx(
         Number(options.slippageTolerance),
-        {
-          denom: denom,
-          amount: bignumber(amount),
-          precision: jupiterPerps.app.coins.get(denom)!.decimals,
-        },
+        coin,
       );
       await simulateAndBroadcast(
         baseApp.anchorProvider,

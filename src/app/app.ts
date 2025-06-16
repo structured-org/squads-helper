@@ -12,7 +12,7 @@ import {
   registerCheckProposalCommand,
   registerSimulateProposalCommand,
 } from './commands/squads';
-
+import { CommandValidator } from '@lib/validator';
 import {
   getBaseApp,
   parseConfig,
@@ -34,6 +34,8 @@ const baseApp = getBaseApp();
 const jupiterPerpsApp = getJupiterPerpsAppFromConfig(config);
 const squadsMultisigApp = getSquadsMultisigAppFromConfig(config);
 const wormholeApp = getWormholeAppfromConfig(config);
+
+const commandValidator = new CommandValidator(logger, jupiterPerpsApp);
 
 const jupiterPerps = new JupiterPerps(logger, baseApp, jupiterPerpsApp);
 const squadsMultisig = new SquadsMultisig(logger, baseApp, squadsMultisigApp);
@@ -66,6 +68,7 @@ registerBatchAddLiquidityCommand(
   baseApp,
   jupiterPerps,
   squadsMultisig,
+  commandValidator,
 );
 registerAddLiquidityCommand(
   alt,
@@ -74,6 +77,7 @@ registerAddLiquidityCommand(
   baseApp,
   jupiterPerps,
   multisigProvider,
+  commandValidator,
 );
 registerRemoveLiquidityCommand(
   alt,
